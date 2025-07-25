@@ -1,0 +1,123 @@
+{
+  // Markdownlint configuration for Claude Agents project - STRICTEST RULES
+  "config": {
+    "MD001": true,   // Heading levels should only increment by one level at a time
+    "MD002": true,   // First heading should be a top-level heading
+    "MD003": {
+      "style": "atx"  // Heading style (use # instead of underlines)
+    },
+    "MD004": {
+      "style": "dash"  // Unordered list style (use - consistently)
+    },
+    "MD005": true,   // Inconsistent indentation for list items
+    "MD006": true,   // Consider starting bulleted lists at the beginning of the line
+    "MD007": {
+      "indent": 2    // Strict 2-space indentation for lists
+    },
+    "MD008": true,   // Trailing whitespace
+    "MD009": {
+      "br_spaces": 0  // No trailing spaces allowed (strictest)
+    },
+    "MD010": {
+      "code_blocks": false  // No hard tabs anywhere
+    },
+    "MD011": true,   // Reversed link syntax
+    "MD012": {
+      "maximum": 1   // Only 1 consecutive blank line allowed (strictest)
+    },
+    "MD013": {
+      "line_length": 100,  // Strict line length limit
+      "heading_line_length": 100,
+      "code_block_line_length": 120,
+      "tables": false
+    },
+    "MD014": true,   // Dollar signs used before commands without showing output
+    "MD018": true,   // No space after hash on atx style heading
+    "MD019": true,   // Multiple spaces after hash on atx style heading
+    "MD020": true,   // No space inside hashes on closed atx style heading
+    "MD021": true,   // Multiple spaces inside hashes on closed atx style heading
+    "MD022": {
+      "lines_above": 1,
+      "lines_below": 1  // Strict blank line requirements around headings
+    },
+    "MD023": true,   // Headings must start at the beginning of the line
+    "MD024": {
+      "siblings_only": true  // Allow duplicate headings in different sections
+    },
+    "MD025": {
+      "level": 1,
+      "front_matter_title": ""  // Only one H1 per document
+    },
+    "MD026": {
+      "punctuation": ".,;:!?"  // No trailing punctuation in headings
+    },
+    "MD027": true,   // Multiple spaces after blockquote symbol
+    "MD028": true,   // Blank line inside blockquote
+    "MD029": {
+      "style": "ordered"  // Ordered list numbers must be sequential
+    },
+    "MD030": {
+      "ul_single": 1,
+      "ol_single": 1,
+      "ul_multi": 1,
+      "ol_multi": 1  // Strict spacing after list markers
+    },
+    "MD031": {
+      "list_items": true  // Fenced code blocks must be surrounded by blank lines
+    },
+    "MD032": true,   // Lists should be surrounded by blank lines
+    "MD033": {
+      "allowed_elements": []  // No HTML elements allowed (strictest)
+    },
+    "MD034": true,   // Bare URL used
+    "MD035": {
+      "style": "---"  // Consistent horizontal rule style
+    },
+    "MD036": false,  // Allow emphasis for structured sections in agent files
+    "MD037": true,   // Spaces inside emphasis markers
+    "MD038": true,   // Spaces inside code span elements
+    "MD039": true,   // Spaces inside link text
+    "MD040": false,  // Allow code blocks without language specifiers for examples
+    "MD041": false,  // Disabled for files with YAML frontmatter
+    "MD042": true,   // No empty links
+    "MD043": false,  // Disabled - too strict for agent files with varied structures
+    "MD044": {
+      "names": ["JavaScript", "TypeScript", "GitHub", "Claude", "TDD", "API", "HTML", "CSS", "JSON", "YAML", "SQL", "HTTP", "HTTPS", "URL", "URI", "UUID", "AI", "ML", "DevOps", "CI/CD"],
+      "code_blocks": false,
+      "html_elements": false  // Proper capitalization for technical terms
+    },
+    "MD045": true,   // Images should have alternate text
+    "MD046": {
+      "style": "fenced"  // Code block style must be fenced
+    },
+    "MD047": true,   // Files should end with a single newline character
+    "MD048": {
+      "style": "backtick"  // Code fence style must be backticks
+    },
+    "MD049": {
+      "style": "underscore"  // Emphasis style must be underscores
+    },
+    "MD050": {
+      "style": "asterisk"  // Strong style must be asterisks
+    },
+    "MD051": true,   // Link fragments should be valid
+    "MD052": true,   // Reference links and images should use a label that is defined
+    "MD053": true,   // Link and image reference definitions should be needed
+    "MD054": true,   // Link and image style should be consistent
+    "MD055": true,   // Table pipe style should be consistent
+    "MD056": true    // Table column count should be consistent
+  },
+  
+  // File patterns to include/exclude
+  "globs": [
+    "**/*.md",
+    "**/*.markdown"
+  ],
+  
+  // Ignore specific files or patterns
+  "ignores": [
+    "node_modules/**",
+    ".git/**",
+    "CHANGELOG.md"
+  ]
+}
