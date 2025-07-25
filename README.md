@@ -466,8 +466,8 @@ Each handoff includes:
 
 This system leverages Model Context Protocol (MCP) servers for enhanced capabilities:
 
-- **[Context7](https://github.com/modelcontextprotocol/servers/tree/main/src/context7)** - Provides up-to-date documentation and code examples for any library, ensuring agents have access to current best practices and implementation patterns
-- **[Perplexity](https://github.com/modelcontextprotocol/servers/tree/main/src/perplexity)** - Enables real-time web search and research capabilities for agents to access the latest information, trends, and solutions
+- **[Context7](https://context7.com/)** - Provides up-to-date documentation and code examples for any library, ensuring agents have access to current best practices and implementation patterns
+- **[Perplexity MCP](https://github.com/jsonallen/perplexity-mcp)** - Enables real-time web search and research capabilities for agents to access the latest information, trends, and solutions
 
 These MCP integrations ensure that all agents can access current documentation, research latest best practices, and provide solutions based on the most up-to-date information available.
 
