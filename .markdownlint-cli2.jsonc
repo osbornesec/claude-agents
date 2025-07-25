@@ -82,7 +82,19 @@
     "MD042": true,   // No empty links
     "MD043": false,  // Disabled - too strict for agent files with varied structures
     "MD044": {
-      "names": ["JavaScript", "TypeScript", "GitHub", "Claude", "TDD", "API", "HTML", "CSS", "JSON", "YAML", "SQL", "HTTP", "HTTPS", "URL", "URI", "UUID", "AI", "ML", "DevOps", "CI/CD"],
+      // Proper names list is maintained in .markdownlint-proper-names.json
+      // Run `node scripts/build-markdownlint-config.js` to see all available names
+      "names": [
+        // Core technical terms
+        "JavaScript", "TypeScript", "GitHub", "Claude", "TDD", "API", "HTML", "CSS", 
+        "JSON", "YAML", "SQL", "HTTP", "HTTPS", "URL", "URI", "UUID", "AI", "ML", 
+        "DevOps", "CI/CD",
+        // Additional frameworks and tools (from .markdownlint-proper-names.json)
+        "React", "Vue", "Angular", "Express", "FastAPI", "Spring", "Django", "Flask",
+        "PostgreSQL", "MySQL", "MongoDB", "Redis", "SQLite",
+        "AWS", "Azure", "GCP", "CloudFlare",
+        "Docker", "Kubernetes", "Jenkins", "GitLab", "Terraform", "Ansible"
+      ],
       "code_blocks": false,
       "html_elements": false  // Proper capitalization for technical terms
     },

@@ -13,6 +13,7 @@
     "format:md:check": "prettier --check \"**/*.md\"",
     "quality": "npm run lint:md && npm run format:check",
     "quality:fix": "npm run lint:md:fix && npm run format",
+    "config:markdownlint": "node scripts/build-markdownlint-config.js",
     "prepare": "husky"
   },
   "repository": {
