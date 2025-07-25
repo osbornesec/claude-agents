@@ -193,7 +193,7 @@ module.exports = {
 }
 ```
 
-### TypeScript Configuration (tsconfig.JSON)
+### TypeScript Configuration (tsconfig.json)
 
 ```json
 {
