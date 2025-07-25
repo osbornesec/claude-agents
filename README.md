@@ -462,6 +462,23 @@ Each handoff includes:
 - **Knowledge Transfer**: All work is documented and traceable
 - **Continuous Improvement**: System learns and refines processes over time
 
+## MCP Server Integration
+
+This system leverages Model Context Protocol (MCP) servers for enhanced capabilities:
+
+- **[Context7](https://github.com/modelcontextprotocol/servers/tree/main/src/context7)** - Provides up-to-date documentation and code examples for any library, ensuring agents have access to current best practices and implementation patterns
+- **[Perplexity](https://github.com/modelcontextprotocol/servers/tree/main/src/perplexity)** - Enables real-time web search and research capabilities for agents to access the latest information, trends, and solutions
+
+These MCP integrations ensure that all agents can access current documentation, research latest best practices, and provide solutions based on the most up-to-date information available.
+
+### Agent Research Protocol
+
+All sub-agents follow this enhanced research workflow:
+1. **Context7 Documentation Lookup** - Research relevant libraries and frameworks
+2. **Perplexity Web Search** - Find latest best practices and solutions  
+3. **Domain Processing** - Apply specialist expertise to the research
+4. **Output Generation** - Create deliverables with current best practices
+
 ## Contributing
 
 This system is designed to be extensible. New specialists can be added to the `.claude/agents/` directory following the established patterns and integration points.
