@@ -199,7 +199,7 @@ When iterations are needed:
 1. **Identify the revision point** in the workflow
 2. **Delegate back to the appropriate specialist**
 3. **Update subsequent agents** with revised inputs
-4. **Maintain traceability** of changes through AI_docs/
+4. **Maintain traceability** of changes through ai_docs/
 
 ### TDD Integration Points
 
