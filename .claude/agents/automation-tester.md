@@ -190,10 +190,7 @@ test.describe("User Authentication Flow", () => {
 })
 ```
 
-```
-
 ### API Test Automation
-```
 
 ## REST API Testing Framework (Supertest + Jest)
 
