@@ -1077,7 +1077,6 @@ As of {{ current_date }}, all systems are operational with the following status:
 - [ ] Emergency escalation procedures reviewed
 - [ ] First maintenance task identified and planned
 
-````
 
 ## Self-Critique Process
 
