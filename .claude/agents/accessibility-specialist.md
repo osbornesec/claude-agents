@@ -61,7 +61,7 @@ Your role is to:
 
 ### WCAG 2.1 AA Compliance Audit
 
-````
+```markdown
 ## Level A Criteria (Must Pass)
 
 ### 1.1 Text Alternatives
