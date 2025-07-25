@@ -1,0 +1,43 @@
+# Prettier ignore file for Claude Agents project
+
+# Node modules
+node_modules/
+
+# Git directory
+.git/
+
+# Build outputs
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.vscode/*
+.idea
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Documentation that should not be formatted
+CHANGELOG.md
+
+# Agent files with YAML frontmatter should not be formatted
+.claude/agents/
+
+# Note: YAML frontmatter in markdown files is handled by embeddedLanguageFormatting: "off" in .prettierrc.json

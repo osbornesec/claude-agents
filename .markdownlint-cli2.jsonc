@@ -46,7 +46,7 @@
     },
     "MD025": {
       "level": 1,
-      "front_matter_title": ""  // Only one H1 per document
+      "front_matter_title": "name"  // Allow frontmatter title field
     },
     "MD026": {
       "punctuation": ".,;:!?"  // No trailing punctuation in headings
@@ -126,10 +126,14 @@
     "**/*.markdown"
   ],
   
+  // Frontmatter configuration - ignore YAML frontmatter completely
+  "frontMatter": "^---\\s*$[\\s\\S]*?^---\\s*$",
+  
   // Ignore specific files or patterns
   "ignores": [
     "node_modules/**",
-    ".git/**",
-    "CHANGELOG.md"
+    ".git/**", 
+    "CHANGELOG.md",
+    ".claude/agents/**"
   ]
 }
