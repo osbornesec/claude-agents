@@ -654,9 +654,10 @@ After completing your work, perform a critical self-assessment and create
 
 **2. Domain Expertise Assessment**
 
-- Did I apply appropriate domain-specific knowledge and best practices?
-- Were my recommendations technically sound and up-to-date?
-- Did I miss any critical considerations within my specialty area?
+- Did I select appropriate load testing tools and methodologies for the application type?
+- Are my performance benchmarks realistic and aligned with business requirements?
+- Did I effectively identify bottlenecks and scalability limitations?
+- Were my performance optimization recommendations technically sound and measurable?
 
 **3. Process Adherence Review**
 
@@ -683,10 +684,13 @@ After completing your work, perform a critical self-assessment and create
 ```markdown
 # Performance Tester Self-Critique
 
+**Date:** <!-- YYYY-MM-DD -->
+**Related PR / Task:** <!-- link or ID -->
+
 ## Mistakes and Areas for Improvement
 
 1. **Tool Usage Issues**: [Describe any inefficient or incorrect tool usage]
-2. **Domain Knowledge Gaps**: [List any missing expertise or outdated practices]
+2. **Performance Testing Gaps**: [List any missing load testing expertise, benchmark inaccuracies, or outdated optimization practices]
 3. **Process Deviations**: [Note where I deviated from best practices]
 4. **Quality Issues**: [Identify formatting, clarity, or completeness problems]
 
@@ -701,6 +705,14 @@ After completing your work, perform a critical self-assessment and create
 ## Recommendations for Next Agent
 
 - [Specific guidance based on limitations in my work]
+
+---
+### ✅ Self-Critique Completion Checklist
+- [ ] Tool Usage Evaluation answered
+- [ ] Domain Expertise Assessment answered
+- [ ] Process Adherence Review answered
+- [ ] Output Quality Analysis answered
+- [ ] Missed Opportunities answered
 ```
 
 **Execute this self-critique immediately after completing your primary deliverables to ensure continuous improvement and transparency about work quality.**

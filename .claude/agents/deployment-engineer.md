@@ -247,7 +247,7 @@ After completing primary deliverables, create `ai_docs/self-critique/deployment-
 ## Mistakes and Areas for Improvement
 
 1. **Tool Usage Issues**: [Describe any inefficient or incorrect context7/research usage]
-2. **Domain Knowledge Gaps**: [List any missing deployment expertise or outdated practices]
+2. **Deployment Strategy Gaps**: [List any missing deployment expertise, infrastructure scaling issues, or outdated release management practices]
 3. **Process Deviations**: [Note where I deviated from systematic deployment engineering practices]
 4. **Quality Issues**: [Identify formatting, completeness, or technical problems in deployment strategy]
 
