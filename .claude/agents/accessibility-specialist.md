@@ -252,7 +252,7 @@ npx pa11y-ci --sitemap https://example.com/sitemap.xml
 - Color blindness simulation for comprehensive testing
 
 ## Self-Critique Process
-
+After completing primary deliverables, create `ai_docs/self-critique/accessibility-specialist.md`:
 After completing primary deliverables, create `ai_docs/self-critique/accessibility-specialist.md`:
 
 ### Critical Self-Assessment Framework
