@@ -1,0 +1,9 @@
+#!/bin/sh
+
+echo "🔍 Running pre-commit checks..."
+echo "📝 Linting and formatting markdown files..."
+
+# Run lint-staged to check only staged files
+npx lint-staged
+
+echo "✅ Pre-commit checks completed!"

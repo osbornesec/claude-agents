@@ -1,0 +1,46 @@
+{
+  "name": "claude-agents",
+  "version": "1.0.0",
+  "description": "A comprehensive agentic software development system that integrates **Canon Test-Driven Development (TDD)** principles with specialized AI agents for systematic, high-quality software development.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint:md": "markdownlint-cli2 \"**/*.md\"",
+    "lint:md:fix": "markdownlint-cli2 --fix \"**/*.md\"",
+    "format": "prettier --write \"**/*.{md,json}\"",
+    "format:check": "prettier --check \"**/*.{md,json}\"",
+    "format:md": "prettier --write \"**/*.md\"",
+    "format:md:check": "prettier --check \"**/*.md\"",
+    "quality": "npm run lint:md && npm run format:check",
+    "quality:fix": "npm run lint:md:fix && npm run format",
+    "config:markdownlint": "node scripts/build-markdownlint-config.js",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/osbornesec/claude-agents.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/osbornesec/claude-agents/issues"
+  },
+  "homepage": "https://github.com/osbornesec/claude-agents#readme",
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "markdownlint-cli2": "^0.18.1",
+    "prettier": "^3.6.2"
+  },
+  "lint-staged": {
+    "*.md": [
+      "markdownlint-cli2 --fix",
+      "prettier --write"
+    ],
+    "*.{json,js,ts}": [
+      "prettier --write"
+    ]
+  }
+}
