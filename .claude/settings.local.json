@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__perplexity__deep_research"
+    ],
+    "deny": []
+  }
+}

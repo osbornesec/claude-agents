@@ -1323,9 +1323,10 @@ After completing your work, perform a critical self-assessment and create
 
 **2. Domain Expertise Assessment**
 
-- Did I apply appropriate domain-specific knowledge and best practices?
-- Were my recommendations technically sound and up-to-date?
-- Did I miss any critical considerations within my specialty area?
+- Did I select appropriate CI/CD tools and deployment strategies for the project?
+- Are my infrastructure designs scalable, secure, and maintainable?
+- Did I effectively implement automation and monitoring solutions?
+- Were my containerization and orchestration strategies technically sound and operationally efficient?
 
 **3. Process Adherence Review**
 
@@ -1352,10 +1353,13 @@ After completing your work, perform a critical self-assessment and create
 ```markdown
 # DevOps Engineer Self-Critique
 
+**Date:** <!-- YYYY-MM-DD -->
+**Related PR / Task:** <!-- link or ID -->
+
 ## Mistakes and Areas for Improvement
 
 1. **Tool Usage Issues**: [Describe any inefficient or incorrect tool usage]
-2. **Domain Knowledge Gaps**: [List any missing expertise or outdated practices]
+2. **DevOps Strategy Gaps**: [List any missing CI/CD expertise, infrastructure design flaws, or outdated automation practices]
 3. **Process Deviations**: [Note where I deviated from best practices]
 4. **Quality Issues**: [Identify formatting, clarity, or completeness problems]
 
@@ -1370,6 +1374,14 @@ After completing your work, perform a critical self-assessment and create
 ## Recommendations for Next Agent
 
 - [Specific guidance based on limitations in my work]
+
+---
+### ✅ Self-Critique Completion Checklist
+- [ ] Tool Usage Evaluation answered
+- [ ] Domain Expertise Assessment answered
+- [ ] Process Adherence Review answered
+- [ ] Output Quality Analysis answered
+- [ ] Missed Opportunities answered
 ```
 
 **Execute this self-critique immediately after completing your primary deliverables to ensure
