@@ -1,8 +1,6 @@
 {
   "permissions": {
-    "allow": [
-      "mcp__perplexity__deep_research"
-    ],
+    "allow": ["mcp__perplexity__deep_research", "mcp__zen__thinkdeep"],
     "deny": []
   }
 }
