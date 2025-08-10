@@ -1023,4 +1023,276 @@ connection_pool = MemoryPool(
 )
 ```
 
+## Few-Shot Examples
+
+### Example 1: BAD - Inaccurate Performance Measurement
+
+**Task**: Measure algorithm execution time for optimization
+**Bad Approach**:
+```pseudocode
+BEGIN BadPerformanceMeasurement
+INPUT algorithm_function
+SET start_time to current_system_time()
+
+CALL algorithm_function()
+
+SET end_time to current_system_time()
+SET execution_time to end_time - start_time
+OUTPUT "Execution time: " + execution_time + " milliseconds"
+END
+```
+**Why it's bad**: Single measurements are unreliable due to system interference, timing granularity issues, lacks statistical validity, no warmup period for JIT compilation.
+
+### Example 2: GOOD - Statistical Performance Analysis  
+
+**Task**: Accurately measure algorithm performance
+**Good Approach**:
+```pseudocode
+BEGIN AccuratePerformanceMeasurement
+INPUT algorithm_function, warmup_runs = 100, measurement_runs = 1000
+CREATE execution_times array[measurement_runs]
+
+FOR i = 1 to warmup_runs:
+    CALL algorithm_function()
+END FOR
+
+FOR i = 1 to measurement_runs:
+    SET start_time to high_precision_timer()
+    CALL algorithm_function()
+    SET end_time to high_precision_timer()
+    SET execution_times[i] to end_time - start_time
+END FOR
+
+SORT execution_times
+SET median_time to execution_times[measurement_runs / 2]
+SET percentile_95 to execution_times[measurement_runs * 0.95]
+CALCULATE standard_deviation from execution_times
+
+OUTPUT "Median: " + median_time
+OUTPUT "95th Percentile: " + percentile_95
+OUTPUT "Standard Deviation: " + standard_deviation
+END
+```
+**Why it's better**: Includes warmup phases, multiple measurements for statistical validity, reports meaningful metrics including median and percentiles.
+
+### Example 3: BAD - Naive Cache Implementation
+
+**Task**: Add caching to improve performance
+**Bad Approach**:
+```pseudocode
+BEGIN NaiveCacheImplementation
+CREATE global_cache as dictionary
+
+FUNCTION expensive_operation(input):
+    IF input exists in global_cache:
+        RETURN global_cache[input]
+    END IF
+    
+    SET result to perform_expensive_computation(input)
+    SET global_cache[input] to result
+    RETURN result
+END FUNCTION
+END
+```
+**Why it's bad**: No size limit leads to memory leaks, no expiration mechanism, not thread-safe, doesn't handle cache invalidation.
+
+### Example 4: GOOD - Advanced Cache with TTL and LRU
+
+**Task**: Implement robust caching system
+**Good Approach**:
+```pseudocode
+BEGIN AdvancedCacheImplementation
+CLASS AdvancedCache:
+    CONSTRUCTOR(max_size, ttl_seconds):
+        SET this.max_size to max_size
+        SET this.ttl to ttl_seconds
+        SET this.cache to dictionary
+        SET this.access_times to dictionary
+        SET this.creation_times to dictionary
+        SET this.lock to threading_lock
+    END CONSTRUCTOR
+    
+    FUNCTION get_or_compute(key, computation_function):
+        ACQUIRE this.lock
+        
+        IF key exists in this.cache:
+            SET age to current_time() - this.creation_times[key]
+            IF age < this.ttl:
+                SET this.access_times[key] to current_time()
+                RETURN this.cache[key]
+            ELSE:
+                CALL this.remove_key(key)
+            END IF
+        END IF
+        
+        SET result to computation_function()
+        CALL this.store_with_eviction(key, result)
+        RETURN result
+        
+        RELEASE this.lock
+    END FUNCTION
+    
+    FUNCTION store_with_eviction(key, value):
+        IF this.cache.size >= this.max_size:
+            SET lru_key to find_least_recently_used()
+            CALL this.remove_key(lru_key)
+        END IF
+        
+        SET current_time to current_time()
+        SET this.cache[key] to value
+        SET this.access_times[key] to current_time
+        SET this.creation_times[key] to current_time
+    END FUNCTION
+END CLASS
+END
+```
+**Why it's better**: Thread-safe with locking, implements TTL expiration, uses LRU eviction, prevents memory leaks with size limits.
+
+### Example 5: BAD - Blocking I/O in Performance-Critical Code
+
+**Task**: Process multiple API requests efficiently
+**Bad Approach**:
+```pseudocode
+BEGIN BlockingIOPerformance
+INPUT api_requests[1000]
+CREATE results[]
+
+FOR each request in api_requests:
+    SET response to make_http_request(request.url)  // Blocks for each request
+    SET processed_data to process_response(response)
+    ADD processed_data to results
+END FOR
+
+RETURN results
+END
+```
+**Why it's bad**: Sequential blocking I/O operations, doesn't utilize concurrency, poor resource utilization, long total execution time.
+
+### Example 6: GOOD - Asynchronous Concurrent Processing
+
+**Task**: Process the same API requests with optimal concurrency
+**Good Approach**:
+```pseudocode
+BEGIN AsyncConcurrentProcessing
+INPUT api_requests[1000]
+SET max_concurrent to min(100, cpu_count * 4)
+CREATE semaphore with limit max_concurrent
+
+ASYNC FUNCTION process_request(request):
+    ACQUIRE semaphore
+    TRY:
+        SET response to await make_async_http_request(request.url)
+        SET processed_data to await process_response_async(response)
+        RETURN processed_data
+    FINALLY:
+        RELEASE semaphore
+    END TRY
+END FUNCTION
+
+// Process requests in batches
+SET batch_size to 100
+SET all_results to []
+
+FOR batch_start = 0 to api_requests.length STEP batch_size:
+    SET batch to api_requests[batch_start:batch_start + batch_size]
+    
+    CREATE tasks[]
+    FOR each request in batch:
+        ADD process_request(request) to tasks
+    END FOR
+    
+    SET batch_results to await gather_all(tasks)
+    ADD batch_results to all_results
+END FOR
+
+RETURN all_results
+END
+```
+**Why it's better**: Utilizes asynchronous I/O, controls concurrency with semaphores, processes in batches to manage memory, scales with available resources.
+
+### Example 7: BAD - Memory Inefficient Data Processing
+
+**Task**: Process large dataset with transformations
+**Bad Approach**:
+```pseudocode
+BEGIN MemoryIneffientProcessing
+INPUT large_dataset[10000000]
+CREATE transformed_data[10000000]
+CREATE filtered_data[10000000]
+CREATE final_results[10000000]
+
+// Load all data into memory at once
+FOR i = 0 to large_dataset.length - 1:
+    SET transformed_data[i] to transform_operation(large_dataset[i])
+END FOR
+
+FOR i = 0 to transformed_data.length - 1:
+    IF meets_filter_criteria(transformed_data[i]):
+        SET filtered_data[filter_count] to transformed_data[i]
+        INCREMENT filter_count
+    END IF
+END FOR
+
+FOR i = 0 to filter_count - 1:
+    SET final_results[i] to expensive_processing(filtered_data[i])
+END FOR
+
+RETURN final_results
+END
+```
+**Why it's bad**: Creates multiple full-size arrays, high memory usage, multiple passes over data, poor cache locality.
+
+### Example 8: GOOD - Streaming Data Processing with Memory Management
+
+**Task**: Process the same dataset with optimal memory usage
+**Good Approach**:
+```pseudocode
+BEGIN StreamingDataProcessing
+INPUT large_dataset_stream
+SET chunk_size to calculate_optimal_chunk_size()
+CREATE result_stream
+
+GENERATOR FUNCTION process_streaming():
+    SET current_chunk to []
+    
+    FOR each item in large_dataset_stream:
+        ADD item to current_chunk
+        
+        IF current_chunk.size >= chunk_size:
+            FOR each processed_item in process_chunk_pipeline(current_chunk):
+                YIELD processed_item
+            END FOR
+            CLEAR current_chunk
+            CALL garbage_collect()
+        END IF
+    END FOR
+    
+    // Process final partial chunk
+    IF current_chunk.size > 0:
+        FOR each processed_item in process_chunk_pipeline(current_chunk):
+            YIELD processed_item
+        END FOR
+    END IF
+END GENERATOR
+
+FUNCTION process_chunk_pipeline(chunk):
+    // Single-pass processing with pipeline
+    CREATE results[]
+    
+    FOR each item in chunk:
+        SET transformed to transform_operation(item)
+        IF meets_filter_criteria(transformed):
+            SET processed to expensive_processing(transformed)
+            ADD processed to results
+        END IF
+    END FOR
+    
+    RETURN results
+END FUNCTION
+
+RETURN process_streaming()
+END
+```
+**Why it's better**: Constant memory usage regardless of dataset size, single-pass processing, explicit memory management, scales to any data size.
+
 Use these performance optimization techniques and monitoring patterns to build high-performance, scalable systems that can efficiently handle large volumes of data while maintaining optimal resource utilization.

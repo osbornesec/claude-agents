@@ -111,3 +111,224 @@ When executing a PRP autonomously:
 - Caches performance analysis results for similar code patterns and optimization scenarios
 - Reuses proven optimization patterns and performance configurations when appropriate
 - Balances optimization depth with development velocity and maintainability constraints
+
+## Few-Shot Examples
+
+### Example 1: BAD - Premature Micro-Optimization
+
+**Task**: Optimize a simple data processing function
+**Bad Approach**:
+```pseudocode
+BEGIN PrematureMicroOptimization
+INPUT data_array[10]
+SET sum to 0
+
+FOR i = 0 to data_array.length - 1:
+    SET temp to data_array[i]
+    SET temp to temp << 1  // Multiply by 2 using bit shift
+    SET temp to temp & 0xFFFE  // Clear last bit using bitwise AND
+    SET temp to temp | (temp >> 1)  // Complex bit manipulation
+    SET sum to sum + temp
+END FOR
+
+OUTPUT sum
+END
+```
+**Why it's bad**: Complex bit manipulations applied to small dataset where overhead exceeds benefits, premature optimization obscures algorithm intent without meaningful performance gains.
+
+### Example 2: GOOD - Algorithm-Level Optimization
+
+**Task**: Optimize the same function with algorithmic improvements
+**Good Approach**:
+```pseudocode
+BEGIN AlgorithmLevelOptimization
+INPUT data_array[1000000]
+
+IF data_array.length < 1000:
+    // Simple approach for small datasets
+    SET sum to 0
+    FOR each value in data_array:
+        SET sum to sum + (value * 2)
+    END FOR
+ELSE:
+    // Parallel processing for large datasets
+    SET chunk_size to data_array.length / thread_count
+    CREATE partial_sums array[thread_count]
+    
+    PARALLEL FOR thread_id = 0 to thread_count - 1:
+        SET start_index to thread_id * chunk_size
+        SET end_index to start_index + chunk_size
+        SET partial_sum to 0
+        
+        FOR i = start_index to end_index - 1:
+            SET partial_sum to partial_sum + (data_array[i] * 2)
+        END FOR
+        
+        SET partial_sums[thread_id] to partial_sum
+    END PARALLEL FOR
+    
+    SET sum to 0
+    FOR each partial_sum in partial_sums:
+        SET sum to sum + partial_sum
+    END FOR
+END IF
+
+OUTPUT sum
+END
+```
+**Why it's better**: Focuses on algorithmic improvements that provide substantial benefits, chooses appropriate algorithms based on data size, leverages parallelization where beneficial.
+
+### Example 3: BAD - Ignoring Memory Access Patterns
+
+**Task**: Optimize matrix multiplication
+**Bad Approach**:
+```pseudocode
+BEGIN CacheInefficient MatrixMultiply
+INPUT matrix_a[1000][1000], matrix_b[1000][1000]
+CREATE result_matrix[1000][1000]
+
+FOR i = 0 to 999:
+    FOR j = 0 to 999:
+        SET result_matrix[i][j] to 0
+        FOR k = 0 to 999:
+            SET result_matrix[i][j] to result_matrix[i][j] + 
+                                      matrix_a[i][k] * matrix_b[k][j]
+        END FOR
+    END FOR
+END FOR
+
+OUTPUT result_matrix
+END
+```
+**Why it's bad**: Accesses matrix_b column-wise causing cache misses, O(n³) with poor memory locality, doesn't utilize modern CPU cache hierarchies effectively.
+
+### Example 4: GOOD - Cache-Optimized Matrix Multiplication
+
+**Task**: Optimize the same matrix multiplication with cache awareness
+**Good Approach**:
+```pseudocode
+BEGIN CacheOptimizedMatrixMultiply
+INPUT matrix_a[1000][1000], matrix_b[1000][1000]
+CREATE result_matrix[1000][1000]
+CREATE transposed_b[1000][1000]
+
+// Step 1: Transpose matrix B for better cache locality
+FOR i = 0 to 999:
+    FOR j = 0 to 999:
+        SET transposed_b[j][i] to matrix_b[i][j]
+    END FOR
+END FOR
+
+// Step 2: Block matrix multiplication for cache efficiency
+SET block_size to 64  // Optimize for L1 cache
+
+FOR i_block = 0 to 999 STEP block_size:
+    FOR j_block = 0 to 999 STEP block_size:
+        FOR k_block = 0 to 999 STEP block_size:
+            
+            FOR i = i_block to min(i_block + block_size - 1, 999):
+                FOR j = j_block to min(j_block + block_size - 1, 999):
+                    SET accumulator to 0
+                    FOR k = k_block to min(k_block + block_size - 1, 999):
+                        SET accumulator to accumulator + 
+                                          matrix_a[i][k] * transposed_b[j][k]
+                    END FOR
+                    SET result_matrix[i][j] to result_matrix[i][j] + accumulator
+                END FOR
+            END FOR
+            
+        END FOR
+    END FOR
+END FOR
+
+OUTPUT result_matrix
+END
+```
+**Why it's better**: Improves cache locality through blocking and matrix transposition, reduces cache misses by orders of magnitude, leverages spatial locality of modern CPU architectures.
+
+### Example 5: BAD - Inefficient Database Optimization
+
+**Task**: Optimize slow data retrieval
+**Bad Approach**:
+```pseudocode
+BEGIN IneffientDatabaseAccess
+INPUT user_ids[10000]
+CREATE user_profiles[]
+
+FOR each user_id in user_ids:
+    SET query to "SELECT * FROM users WHERE id = " + user_id
+    SET profile to execute_database_query(query)
+    ADD profile to user_profiles
+END FOR
+
+OUTPUT user_profiles
+END
+```
+**Why it's bad**: N+1 query problem, executes 10,000 individual database queries, high network latency overhead, doesn't leverage database query optimization.
+
+### Example 6: GOOD - Batch Processing with Query Optimization
+
+**Task**: Optimize the same data retrieval efficiently
+**Good Approach**:
+```pseudocode
+BEGIN OptimizedDatabaseAccess
+INPUT user_ids[10000]
+CREATE user_profiles[]
+
+// Step 1: Batch process in chunks to respect database limits
+SET batch_size to 1000
+SET batches to chunk_array(user_ids, batch_size)
+
+FOR each batch in batches:
+    // Step 2: Single parameterized query for entire batch
+    SET placeholders to create_placeholders(batch.length)
+    SET batch_query to "SELECT * FROM users WHERE id IN (" + placeholders + ")"
+    SET batch_profiles to execute_parameterized_query(batch_query, batch)
+    ADD batch_profiles to user_profiles
+END FOR
+
+// Step 3: Create lookup map for O(1) access if needed
+CREATE profile_map
+FOR each profile in user_profiles:
+    SET profile_map[profile.id] to profile
+END FOR
+
+OUTPUT user_profiles, profile_map
+END
+```
+**Why it's better**: Reduces 10,000 queries to 10 batch queries, leverages database query planner optimization, includes optional O(1) lookup structure for subsequent access patterns.
+
+## Performance Analysis Tools Integration
+
+### Profiling Setup Example
+```pseudocode
+BEGIN PerformanceMeasurement
+// Before optimization
+START profiler with memory_tracking and cpu_profiling
+EXECUTE original_algorithm(test_data)
+COLLECT baseline_metrics = {
+    execution_time: profiler.total_time,
+    memory_peak: profiler.max_memory,
+    cpu_cycles: profiler.cpu_cycles
+}
+STOP profiler
+
+// After optimization  
+START profiler with memory_tracking and cpu_profiling
+EXECUTE optimized_algorithm(test_data)
+COLLECT optimized_metrics = {
+    execution_time: profiler.total_time,
+    memory_peak: profiler.max_memory, 
+    cpu_cycles: profiler.cpu_cycles
+}
+STOP profiler
+
+// Calculate improvements
+CREATE performance_report with:
+    time_improvement: (baseline_metrics.execution_time - optimized_metrics.execution_time) / baseline_metrics.execution_time * 100
+    memory_improvement: (baseline_metrics.memory_peak - optimized_metrics.memory_peak) / baseline_metrics.memory_peak * 100
+    efficiency_gain: (baseline_metrics.cpu_cycles - optimized_metrics.cpu_cycles) / baseline_metrics.cpu_cycles * 100
+
+OUTPUT performance_report
+END
+```

@@ -133,6 +133,316 @@ When executing a PRP autonomously:
 - Reuses existing API components, middleware, and architectural patterns when appropriate
 - Balances comprehensive API testing with autonomous development speed
 
+## Few-Shot Examples
+
+### ✅ Good API Design Examples
+
+#### Example 1: Well-Structured FastAPI Application
+
+```python
+# Good: Modern FastAPI with proper structure and type hints
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import datetime
+
+app = FastAPI(
+    title="E-commerce API",
+    description="A comprehensive API for e-commerce operations",
+    version="1.0.0"
+)
+
+# Good: Pydantic models with validation and examples
+class Product(BaseModel):
+    id: int
+    name: str = Field(..., min_length=1, max_length=100)
+    price: float = Field(..., gt=0, description="Price in USD")
+    description: Optional[str] = Field(None, max_length=1000)
+    in_stock: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": 1,
+                "name": "Wireless Headphones",
+                "price": 99.99,
+                "description": "High-quality wireless headphones",
+                "in_stock": True
+            }
+        }
+
+# Good: Proper HTTP methods and status codes
+@app.get("/api/v1/products", response_model=List[Product])
+async def get_products(
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None
+):
+    """Retrieve paginated list of products with optional search."""
+    # Implementation would filter and paginate
+    return []
+
+@app.post("/api/v1/products", 
+          response_model=Product, 
+          status_code=status.HTTP_201_CREATED)
+async def create_product(product: Product):
+    """Create a new product."""
+    # Implementation would save to database
+    return product
+
+# Good: Proper error handling with detailed responses
+@app.get("/api/v1/products/{product_id}", response_model=Product)
+async def get_product(product_id: int):
+    """Get product by ID."""
+    if product_id <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Product ID must be positive"
+        )
+    # Implementation would fetch from database
+    # If not found:
+    # raise HTTPException(
+    #     status_code=status.HTTP_404_NOT_FOUND,
+    #     detail=f"Product with ID {product_id} not found"
+    # )
+```
+
+#### Example 2: GraphQL Schema with Best Practices
+
+```graphql
+# Good: Well-designed GraphQL schema
+type Query {
+  products(
+    first: Int = 20
+    after: String
+    search: String
+  ): ProductConnection!
+  
+  product(id: ID!): Product
+  user(id: ID!): User
+}
+
+type Mutation {
+  createProduct(input: CreateProductInput!): CreateProductPayload!
+  updateProduct(id: ID!, input: UpdateProductInput!): UpdateProductPayload!
+  deleteProduct(id: ID!): DeleteProductPayload!
+}
+
+# Good: Consistent error handling in mutations
+type CreateProductPayload {
+  product: Product
+  userErrors: [UserError!]!
+}
+
+type UserError {
+  field: String!
+  message: String!
+  code: String!
+}
+
+# Good: Relay-style pagination
+type ProductConnection {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductEdge {
+  cursor: String!
+  node: Product!
+}
+
+type Product {
+  id: ID!
+  name: String!
+  description: String
+  price: Money!
+  inStock: Boolean!
+  createdAt: DateTime!
+  
+  # Good: Business logic field
+  isOnSale: Boolean!
+  
+  # Good: Nested relationships
+  reviews(first: Int): ReviewConnection!
+}
+
+# Good: Custom scalars for domain-specific types
+scalar DateTime
+scalar Money
+```
+
+#### Example 3: Proper REST API Authentication
+
+```python
+# Good: JWT authentication with proper error handling
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+import secrets
+
+app = FastAPI()
+security = HTTPBearer()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+SECRET_KEY = secrets.token_urlsafe(32)
+ALGORITHM = "HS256"
+
+class AuthService:
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        return pwd_context.verify(plain_password, hashed_password)
+    
+    @staticmethod
+    def get_password_hash(password: str) -> str:
+        return pwd_context.hash(password)
+    
+    @staticmethod
+    def create_access_token(data: dict) -> str:
+        return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+    
+    @staticmethod
+    def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+        try:
+            payload = jwt.decode(
+                credentials.credentials, 
+                SECRET_KEY, 
+                algorithms=[ALGORITHM]
+            )
+            user_id = payload.get("sub")
+            if user_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid authentication token"
+                )
+            return user_id
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication token"
+            )
+
+# Good: Protected endpoint with proper dependency injection
+@app.get("/api/v1/profile")
+async def get_profile(current_user_id: str = Depends(AuthService.verify_token)):
+    """Get current user profile."""
+    # Implementation would fetch user data
+    return {"user_id": current_user_id}
+```
+
+### ❌ Bad API Design Examples
+
+#### Example 1: Poor FastAPI Structure
+
+```python
+# Bad: Poor structure, no validation, inconsistent patterns
+from flask import Flask  # Wrong framework import
+import json
+
+app = FastAPI()
+
+# Bad: No type hints, no validation, generic response
+@app.get("/get_product")  # Bad: Non-RESTful URL
+def get_product(id):      # Bad: No type hints
+    # Bad: No error handling
+    product = {"id": id, "name": "Product"}
+    return json.dumps(product)  # Bad: Manual JSON serialization
+
+# Bad: Using wrong HTTP method for data retrieval
+@app.post("/products")    # Should be GET
+def list_products():
+    # Bad: No pagination, no filtering
+    return [{"id": 1}, {"id": 2}]  # Bad: Inconsistent response format
+
+# Bad: No authentication, no validation
+@app.put("/update_product/{id}")
+def update_product(id, data):  # Bad: No type validation
+    # Bad: No error handling for missing data
+    return {"success": True}   # Bad: Generic success message
+```
+
+#### Example 2: Poor GraphQL Schema Design
+
+```graphql
+# Bad: Poor GraphQL schema design
+type Query {
+  # Bad: Exposes database implementation
+  getProductsFromDB(table: String!): [Product!]!
+  
+  # Bad: No pagination, could return millions of records
+  getAllProducts: [Product!]!
+  
+  # Bad: Generic field names
+  getData(type: String, filter: String): String
+}
+
+type Mutation {
+  # Bad: No error handling structure
+  createProduct(name: String, price: String): Product
+  
+  # Bad: Inconsistent naming
+  productUpdate(productId: String, data: String): String
+}
+
+# Bad: Exposing internal IDs and implementation details
+type Product {
+  internal_id: String!
+  db_created_timestamp: String!
+  
+  # Bad: No validation or proper types
+  price: String
+  data: String
+  
+  # Bad: N+1 query potential
+  relatedProducts: [Product!]!  # No pagination
+}
+
+# Bad: No custom scalars, everything is String
+```
+
+#### Example 3: Insecure Authentication
+
+```python
+# Bad: Insecure authentication practices
+from fastapi import FastAPI
+import hashlib
+
+app = FastAPI()
+
+# Bad: Weak password hashing
+def hash_password(password: str) -> str:
+    return hashlib.md5(password.encode()).hexdigest()  # MD5 is insecure
+
+# Bad: No proper token validation
+@app.post("/login")
+def login(username: str, password: str):
+    # Bad: Hardcoded credentials
+    if username == "admin" and password == "password123":
+        # Bad: Predictable token
+        token = f"user:{username}:timestamp:{time.time()}"
+        return {"token": token}
+    return {"error": "Invalid credentials"}
+
+# Bad: No authentication validation
+@app.get("/admin/users")
+def get_users(token: str = None):  # Bad: Optional authentication
+    # Bad: Simple string comparison for auth
+    if token and "admin" in token:
+        return [{"id": 1, "password": "plaintext"}]  # Bad: Exposing passwords
+    return {"error": "Unauthorized"}
+
+# Bad: SQL injection vulnerability
+@app.get("/user/{user_id}")
+def get_user(user_id: str):
+    # Bad: Direct SQL injection vulnerability
+    query = f"SELECT * FROM users WHERE id = {user_id}"
+    # This would allow: /user/1; DROP TABLE users;--
+    return {"query": query}
+```
+
 ## Report / Response
 
 Provide API design solutions with:

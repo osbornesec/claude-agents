@@ -610,3 +610,623 @@ uv run python -m memory_profiler temporal_stream.py
 - [ ] Created reusable temporal components?
 
 Remember: You are designing temporal algorithms that efficiently detect patterns and analyze time series data while maintaining low cyclomatic complexity and high performance.
+
+## Few-Shot Examples
+
+### Example 1: BAD - Inefficient Sliding Window Pattern Detection
+
+**Task**: Detect recurring patterns in time series data using sliding windows
+**Bad Approach**:
+```pseudocode
+BEGIN SlidingWindowDetection_Bad
+INPUT time_series_data
+
+CREATE patterns as empty_list
+
+FOR window_start = 0 to time_series_data.length - 10:
+    SET current_window to time_series_data[window_start:window_start + 10]
+    
+    // Check every possible pattern type manually
+    IF current_window[0] < current_window[5] AND current_window[5] > current_window[9]:
+        SET pattern_type to "spike"
+    ELSE IF current_window[0] < current_window[9]:
+        SET increasing_count to 0
+        FOR i = 1 to current_window.length - 1:
+            IF current_window[i] > current_window[i-1]:
+                SET increasing_count to increasing_count + 1
+            END IF
+        END FOR
+        IF increasing_count > 7:
+            SET pattern_type to "increasing_trend"
+        END IF
+    ELSE IF current_window[0] > current_window[9]:
+        SET decreasing_count to 0
+        FOR i = 1 to current_window.length - 1:
+            IF current_window[i] < current_window[i-1]:
+                SET decreasing_count to decreasing_count + 1
+            END IF
+        END FOR
+        IF decreasing_count > 7:
+            SET pattern_type to "decreasing_trend"
+        END IF
+    END IF
+    
+    // Check for periodic patterns
+    FOR period_length = 2 to 5:
+        SET is_periodic to true
+        FOR i = period_length to current_window.length - 1:
+            IF abs(current_window[i] - current_window[i - period_length]) > 5:
+                SET is_periodic to false
+                BREAK
+            END IF
+        END FOR
+        IF is_periodic:
+            SET pattern_type to "periodic_" + period_length
+            BREAK
+        END IF
+    END FOR
+    
+    ADD {window_start: window_start, pattern: pattern_type} to patterns
+END FOR
+
+OUTPUT patterns
+END
+```
+**Why it's bad**: O(n×m×p) complexity with nested loops, hard-coded pattern detection logic, inefficient window recomputation, no statistical validation of patterns, high cyclomatic complexity.
+
+### Example 2: GOOD - Efficient Stream-Based Pattern Detection
+
+**Task**: Detect the same patterns using optimized streaming algorithms
+**Good Approach**:
+```pseudocode
+BEGIN SlidingWindowDetection_Good
+CLASS StreamingPatternDetector:
+    CONSTRUCTOR(window_size=10):
+        SET this.window_size to window_size
+        SET this.sliding_window to create_efficient_sliding_window(window_size)
+        SET this.pattern_detectors to [
+            TrendDetector(window_size),
+            SpikeDetector(threshold=2.0),
+            PeriodicityDetector(max_period=5),
+            AnomalyDetector(sensitivity=0.95)
+        ]
+        SET this.feature_cache to create_lru_cache(100)
+    END CONSTRUCTOR
+    
+    FUNCTION process_stream(time_series_data):
+        CREATE patterns as empty_list
+        
+        FOR each timestamp, value in time_series_data:
+            this.sliding_window.add(value, timestamp)
+            
+            IF this.sliding_window.is_full():
+                SET features to this.extract_window_features()
+                
+                FOR each detector in this.pattern_detectors:
+                    SET detected_pattern to detector.analyze(features, timestamp)
+                    IF detected_pattern is not null:
+                        ADD detected_pattern to patterns
+                    END IF
+                END FOR
+            END IF
+        END FOR
+        
+        RETURN patterns
+    END FUNCTION
+    
+    FUNCTION extract_window_features():
+        SET window_data to this.sliding_window.get_data()
+        SET cache_key to hash(window_data)
+        
+        IF this.feature_cache.contains(cache_key):
+            RETURN this.feature_cache.get(cache_key)
+        END IF
+        
+        SET features to {
+            mean: calculate_mean(window_data),
+            std_dev: calculate_std_dev(window_data),
+            slope: calculate_linear_slope(window_data),
+            autocorrelation: calculate_autocorrelation(window_data),
+            spectral_features: calculate_fft_features(window_data),
+            statistical_moments: calculate_moments(window_data)
+        }
+        
+        this.feature_cache.put(cache_key, features)
+        RETURN features
+    END FUNCTION
+END CLASS
+
+CLASS TrendDetector:
+    CONSTRUCTOR(window_size):
+        SET this.window_size to window_size
+        SET this.trend_threshold to 0.1
+    END CONSTRUCTOR
+    
+    FUNCTION analyze(features, timestamp):
+        SET slope to features.slope
+        SET r_squared to calculate_linear_fit_quality(features)
+        
+        IF r_squared > 0.8:  // Strong linear relationship
+            IF slope > this.trend_threshold:
+                RETURN create_pattern("increasing_trend", timestamp, confidence=r_squared)
+            ELSE IF slope < -this.trend_threshold:
+                RETURN create_pattern("decreasing_trend", timestamp, confidence=r_squared)
+            END IF
+        END IF
+        
+        RETURN null
+    END FUNCTION
+END CLASS
+
+CLASS PeriodicityDetector:
+    CONSTRUCTOR(max_period):
+        SET this.max_period to max_period
+        SET this.fft_calculator to create_fft_calculator()
+    END CONSTRUCTOR
+    
+    FUNCTION analyze(features, timestamp):
+        SET power_spectrum to this.fft_calculator.compute(features.spectral_features)
+        SET dominant_frequencies to find_spectral_peaks(power_spectrum)
+        
+        FOR each frequency, power in dominant_frequencies:
+            SET period to calculate_period_from_frequency(frequency)
+            IF period <= this.max_period AND power > threshold:
+                RETURN create_pattern(
+                    "periodic",
+                    timestamp,
+                    period=period,
+                    confidence=power / max(power_spectrum)
+                )
+            END IF
+        END FOR
+        
+        RETURN null
+    END FUNCTION
+END CLASS
+
+CREATE detector = StreamingPatternDetector(window_size=10)
+OUTPUT detector.process_stream(time_series_data)
+END
+```
+**Why it's better**: O(n) streaming complexity, feature-based pattern detection, efficient caching, statistical validation, modular detector architecture with confidence scores.
+
+### Example 3: BAD - Naive Seasonal Decomposition
+
+**Task**: Decompose time series into trend, seasonal, and residual components
+**Bad Approach**:
+```pseudocode
+BEGIN SeasonalDecomposition_Bad
+INPUT time_series, seasonal_period = 12
+
+// Simple moving average for trend
+CREATE trend_component as empty_array
+FOR i = seasonal_period/2 to time_series.length - seasonal_period/2:
+    SET sum to 0
+    FOR j = i - seasonal_period/2 to i + seasonal_period/2:
+        SET sum to sum + time_series[j]
+    END FOR
+    SET trend_value to sum / (seasonal_period + 1)
+    ADD trend_value to trend_component
+END FOR
+
+// Fill missing trend values with nearest
+FOR i = 0 to seasonal_period/2 - 1:
+    ADD trend_component[0] to trend_component (at beginning)
+END FOR
+FOR i = time_series.length - seasonal_period/2 to time_series.length - 1:
+    ADD trend_component[trend_component.length - 1] to trend_component
+END FOR
+
+// Calculate seasonal component
+CREATE seasonal_component as array_of_zeros(time_series.length)
+FOR season = 0 to seasonal_period - 1:
+    SET seasonal_values to empty_array
+    FOR i = season to time_series.length - 1 STEP seasonal_period:
+        ADD time_series[i] - trend_component[i] to seasonal_values
+    END FOR
+    
+    SET seasonal_average to sum(seasonal_values) / seasonal_values.length
+    
+    FOR i = season to time_series.length - 1 STEP seasonal_period:
+        SET seasonal_component[i] to seasonal_average
+    END FOR
+END FOR
+
+// Calculate residual
+CREATE residual_component as empty_array
+FOR i = 0 to time_series.length - 1:
+    SET residual_value to time_series[i] - trend_component[i] - seasonal_component[i]
+    ADD residual_value to residual_component
+END FOR
+
+OUTPUT trend_component, seasonal_component, residual_component
+END
+```
+**Why it's bad**: Simplistic moving average for trend extraction, crude seasonal averaging, no handling of missing values, ignores multiplicative components, no statistical validation.
+
+### Example 4: GOOD - Advanced Seasonal Decomposition with STL
+
+**Task**: Perform robust seasonal decomposition using statistical methods
+**Good Approach**:
+```pseudocode
+BEGIN SeasonalDecomposition_Good
+CLASS RobustSeasonalDecomposer:
+    CONSTRUCTOR(period, decomposition_type="additive"):
+        SET this.period to period
+        SET this.decomposition_type to decomposition_type
+        SET this.loess_smoother to create_loess_smoother()
+        SET this.robust_estimator to create_robust_estimator()
+    END CONSTRUCTOR
+    
+    FUNCTION decompose(time_series):
+        // STL (Seasonal and Trend decomposition using Loess) algorithm
+        SET preprocessed_data to this.preprocess_series(time_series)
+        
+        // Initialize components
+        SET seasonal to array_of_zeros(preprocessed_data.length)
+        SET trend to array_of_zeros(preprocessed_data.length)
+        
+        // Iterative decomposition
+        SET max_iterations to 10
+        SET convergence_threshold to 1e-6
+        
+        FOR iteration = 1 to max_iterations:
+            // Step 1: Detrend the series
+            SET detrended to this.detrend_series(preprocessed_data, trend)
+            
+            // Step 2: Extract seasonal component using cycle-subseries smoother
+            SET new_seasonal to this.extract_seasonal_component(detrended)
+            
+            // Step 3: Seasonally adjust the series
+            SET seasonally_adjusted to this.remove_seasonal(preprocessed_data, new_seasonal)
+            
+            // Step 4: Extract trend component using LOESS smoother
+            SET new_trend to this.loess_smoother.smooth(seasonally_adjusted)
+            
+            // Step 5: Check for convergence
+            SET seasonal_change to calculate_rmse(seasonal, new_seasonal)
+            SET trend_change to calculate_rmse(trend, new_trend)
+            
+            SET seasonal to new_seasonal
+            SET trend to new_trend
+            
+            IF seasonal_change < convergence_threshold AND trend_change < convergence_threshold:
+                BREAK
+            END IF
+        END FOR
+        
+        // Calculate residual component
+        SET residual to this.calculate_residual(preprocessed_data, trend, seasonal)
+        
+        // Robust residual analysis
+        SET outliers to this.robust_estimator.detect_outliers(residual)
+        
+        // Post-process components if multiplicative
+        IF this.decomposition_type equals "multiplicative":
+            SET trend, seasonal, residual to this.convert_to_multiplicative(trend, seasonal, residual)
+        END IF
+        
+        RETURN create_decomposition_result(trend, seasonal, residual, outliers)
+    END FUNCTION
+    
+    FUNCTION extract_seasonal_component(detrended_data):
+        CREATE seasonal_matrix[this.period][cycles_count]
+        
+        // Organize data by seasonal cycles
+        FOR i = 0 to detrended_data.length - 1:
+            SET season_index to i MOD this.period
+            SET cycle_index to i DIV this.period
+            SET seasonal_matrix[season_index][cycle_index] to detrended_data[i]
+        END FOR
+        
+        // Smooth each seasonal subseries using LOESS
+        CREATE seasonal_component as array_of_zeros(detrended_data.length)
+        
+        FOR season = 0 to this.period - 1:
+            SET subseries to seasonal_matrix[season]
+            SET smoothed_subseries to this.loess_smoother.smooth(subseries)
+            
+            // Map back to original indices
+            FOR cycle = 0 to smoothed_subseries.length - 1:
+                SET original_index to cycle * this.period + season
+                IF original_index < detrended_data.length:
+                    SET seasonal_component[original_index] to smoothed_subseries[cycle]
+                END IF
+            END FOR
+        END FOR
+        
+        // Ensure seasonal component sums to zero (for additive model)
+        IF this.decomposition_type equals "additive":
+            SET seasonal_component to this.center_seasonal_component(seasonal_component)
+        END IF
+        
+        RETURN seasonal_component
+    END FUNCTION
+    
+    FUNCTION calculate_residual(original, trend, seasonal):
+        CREATE residual as array_of_zeros(original.length)
+        
+        FOR i = 0 to original.length - 1:
+            IF this.decomposition_type equals "additive":
+                SET residual[i] to original[i] - trend[i] - seasonal[i]
+            ELSE:
+                SET residual[i] to original[i] / (trend[i] * seasonal[i])
+            END IF
+        END FOR
+        
+        RETURN residual
+    END FUNCTION
+    
+    FUNCTION validate_decomposition(original, trend, seasonal, residual):
+        // Reconstruct series and validate
+        SET reconstructed to this.reconstruct_series(trend, seasonal, residual)
+        SET mse to calculate_mse(original, reconstructed)
+        SET variance_explained to calculate_variance_explained(original, trend, seasonal)
+        
+        RETURN {
+            reconstruction_error: mse,
+            variance_explained: variance_explained,
+            trend_strength: calculate_trend_strength(trend),
+            seasonal_strength: calculate_seasonal_strength(seasonal),
+            residual_autocorrelation: calculate_residual_autocorrelation(residual)
+        }
+    END FUNCTION
+END CLASS
+
+CREATE decomposer = RobustSeasonalDecomposer(period=12, decomposition_type="additive")
+SET result to decomposer.decompose(time_series)
+
+PRINT "Decomposition Quality Metrics:"
+PRINT "Variance Explained: " + result.validation.variance_explained
+PRINT "Trend Strength: " + result.validation.trend_strength
+PRINT "Seasonal Strength: " + result.validation.seasonal_strength
+PRINT "Outliers Detected: " + result.outliers.length
+END
+```
+**Why it's better**: STL algorithm with LOESS smoothing, iterative refinement with convergence checking, robust outlier detection, multiplicative model support, comprehensive validation metrics.
+
+### Example 5: BAD - Crude Change Point Detection
+
+**Task**: Detect structural changes in time series data
+**Bad Approach**:
+```pseudocode
+BEGIN ChangePointDetection_Bad
+INPUT time_series
+
+CREATE change_points as empty_list
+SET window_size to 20
+
+FOR i = window_size to time_series.length - window_size:
+    SET before_window to time_series[i - window_size:i]
+    SET after_window to time_series[i:i + window_size]
+    
+    SET before_avg to sum(before_window) / before_window.length
+    SET after_avg to sum(after_window) / after_window.length
+    
+    SET difference to abs(after_avg - before_avg)
+    
+    IF difference > 10:  // Hardcoded threshold
+        ADD i to change_points
+    END IF
+    
+    // Check for variance change
+    SET before_var to 0
+    FOR each value in before_window:
+        SET before_var to before_var + (value - before_avg)^2
+    END FOR
+    SET before_var to before_var / before_window.length
+    
+    SET after_var to 0
+    FOR each value in after_window:
+        SET after_var to after_var + (value - after_avg)^2
+    END FOR
+    SET after_var to after_var / after_window.length
+    
+    IF abs(after_var - before_var) > 5:  // Another hardcoded threshold
+        ADD i to change_points
+    END IF
+END FOR
+
+OUTPUT change_points
+END
+```
+**Why it's bad**: Fixed window sizes ignore data characteristics, hardcoded thresholds, no statistical significance testing, crude variance calculations, overlapping detections not handled.
+
+### Example 6: GOOD - Statistical Change Point Detection with CUSUM
+
+**Task**: Detect change points using rigorous statistical methods
+**Good Approach**:
+```pseudocode
+BEGIN ChangePointDetection_Good
+CLASS StatisticalChangePointDetector:
+    CONSTRUCTOR(method="CUSUM", significance_level=0.05):
+        SET this.method to method
+        SET this.alpha to significance_level
+        SET this.detectors to {
+            "CUSUM": CUSUMDetector(),
+            "PELT": PELTDetector(),
+            "Bayesian": BayesianChangePointDetector(),
+            "E-Divisive": EDivisiveDetector()
+        }
+    END CONSTRUCTOR
+    
+    FUNCTION detect_change_points(time_series):
+        SET detector to this.detectors[this.method]
+        SET change_points to detector.detect(time_series, this.alpha)
+        
+        // Validate and filter change points
+        SET validated_points to this.validate_change_points(time_series, change_points)
+        
+        // Calculate change point statistics
+        SET statistics to this.calculate_statistics(time_series, validated_points)
+        
+        RETURN {
+            change_points: validated_points,
+            method: this.method,
+            significance_level: this.alpha,
+            statistics: statistics
+        }
+    END FUNCTION
+    
+    FUNCTION validate_change_points(time_series, candidate_points):
+        CREATE validated_points as empty_list
+        
+        FOR each point in candidate_points:
+            // Statistical validation using likelihood ratio test
+            SET likelihood_ratio to this.calculate_likelihood_ratio(time_series, point)
+            SET p_value to this.chi_square_test(likelihood_ratio)
+            
+            IF p_value < this.alpha:
+                ADD {
+                    position: point.position,
+                    p_value: p_value,
+                    change_magnitude: point.change_magnitude,
+                    change_type: this.classify_change_type(time_series, point)
+                } to validated_points
+            END IF
+        END FOR
+        
+        RETURN validated_points
+    END FUNCTION
+END CLASS
+
+CLASS CUSUMDetector:
+    CONSTRUCTOR(h=5, k=0.5):
+        SET this.h to h  // Decision threshold
+        SET this.k to k  // Reference value
+        SET this.reset_threshold to h
+    END CONSTRUCTOR
+    
+    FUNCTION detect(time_series, alpha):
+        SET n to time_series.length
+        SET cumsum_pos to array_of_zeros(n)
+        SET cumsum_neg to array_of_zeros(n)
+        
+        // Estimate initial parameters
+        SET mu_0 to calculate_mean(time_series[0:min(50, n)])
+        SET sigma to calculate_std_dev(time_series[0:min(50, n)])
+        
+        CREATE change_points as empty_list
+        SET last_reset to 0
+        
+        FOR i = 1 to n - 1:
+            // Standardize observation
+            SET z_i to (time_series[i] - mu_0) / sigma
+            
+            // Update CUSUM statistics
+            SET cumsum_pos[i] to max(0, cumsum_pos[i-1] + z_i - this.k)
+            SET cumsum_neg[i] to max(0, cumsum_neg[i-1] - z_i - this.k)
+            
+            // Check for change point
+            IF cumsum_pos[i] > this.h OR cumsum_neg[i] > this.h:
+                // Estimate change point location using maximum likelihood
+                SET change_location to this.estimate_change_location(
+                    time_series[last_reset:i+1], 
+                    cumsum_pos[last_reset:i+1], 
+                    cumsum_neg[last_reset:i+1]
+                )
+                
+                ADD create_change_point(
+                    position=last_reset + change_location,
+                    score=max(cumsum_pos[i], cumsum_neg[i]),
+                    direction="increase" IF cumsum_pos[i] > cumsum_neg[i] ELSE "decrease"
+                ) to change_points
+                
+                // Reset CUSUM statistics
+                SET cumsum_pos[i] to 0
+                SET cumsum_neg[i] to 0
+                SET last_reset to i
+                
+                // Update reference parameters
+                SET mu_0 to calculate_mean(time_series[max(0, i-25):i+1])
+            END IF
+        END FOR
+        
+        RETURN change_points
+    END FUNCTION
+    
+    FUNCTION estimate_change_location(segment, pos_cusum, neg_cusum):
+        SET best_location to 0
+        SET max_likelihood to -infinity
+        
+        FOR k = 1 to segment.length - 1:
+            SET before_segment to segment[0:k]
+            SET after_segment to segment[k:segment.length]
+            
+            SET likelihood to this.calculate_segment_likelihood(before_segment, after_segment)
+            
+            IF likelihood > max_likelihood:
+                SET max_likelihood to likelihood
+                SET best_location to k
+            END IF
+        END FOR
+        
+        RETURN best_location
+    END FUNCTION
+END CLASS
+
+CLASS BayesianChangePointDetector:
+    CONSTRUCTOR(prior_scale=1.0):
+        SET this.prior_scale to prior_scale
+    END CONSTRUCTOR
+    
+    FUNCTION detect(time_series, alpha):
+        // Implement Bayesian Online Change Point Detection
+        SET n to time_series.length
+        SET run_length_probs to create_matrix(n, n)
+        
+        // Initialize with geometric prior
+        SET hazard_rate to 1.0 / 250  // Expected change every 250 points
+        
+        CREATE change_points as empty_list
+        
+        FOR t = 1 to n - 1:
+            // Update run length distribution
+            SET observation to time_series[t]
+            
+            this.update_run_length_distribution(
+                run_length_probs, 
+                observation, 
+                t, 
+                hazard_rate
+            )
+            
+            // Detect change point
+            SET max_prob_position to find_max_probability(run_length_probs[t])
+            
+            IF this.is_change_point_detected(run_length_probs[t], alpha):
+                ADD create_bayesian_change_point(
+                    position=t,
+                    probability=run_length_probs[t][0],  // Probability of change
+                    confidence=calculate_confidence(run_length_probs[t])
+                ) to change_points
+            END IF
+        END FOR
+        
+        RETURN change_points
+    END FUNCTION
+END CLASS
+
+CREATE detector = StatisticalChangePointDetector(method="CUSUM", significance_level=0.01)
+SET result to detector.detect_change_points(time_series)
+
+PRINT "Change Point Detection Results:"
+PRINT "Method: " + result.method
+PRINT "Change points detected: " + result.change_points.length
+FOR each cp in result.change_points:
+    PRINT "Position: " + cp.position + ", Type: " + cp.change_type + ", p-value: " + cp.p_value
+END FOR
+END
+```
+**Why it's better**: Multiple statistical methods (CUSUM, PELT, Bayesian), rigorous significance testing, adaptive thresholds, likelihood-based validation, comprehensive change point characterization with confidence measures.
+
+## Self-Critique Checklist
+- [ ] Used ContextS for temporal algorithm research?
+- [ ] Reduced cyclomatic complexity by 70%+?
+- [ ] Implemented streaming-capable algorithms?
+- [ ] Added statistical validation of patterns?
+- [ ] Optimized for real-time processing?
+- [ ] Maintained pattern detection accuracy?
+- [ ] Created efficient temporal data structures?
+
+Remember: You are architecting temporal analysis systems that efficiently process time series data through sophisticated algorithmic approaches while maintaining statistical rigor and low computational complexity.

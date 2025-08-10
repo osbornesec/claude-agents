@@ -419,3 +419,431 @@ class RollingMetrics:
 ```
 
 Use these analytics patterns and optimization techniques to build comprehensive, performant metrics systems for the CCOBS monitoring platform.
+
+## Few-Shot Examples
+
+### Example 1: BAD - Inefficient Metrics Calculation
+
+**Task**: Calculate daily user activity metrics
+**Bad Approach**:
+```pseudocode
+BEGIN MetricsCalculation_Bad
+INPUT events_table
+
+SET daily_metrics to empty_list
+
+FOR each day in get_all_days():
+    SET total_sessions to 0
+    SET total_duration to 0
+    SET active_users to empty_set
+    
+    FOR each event in events_table:
+        IF event.date equals day:
+            IF event.type equals "session_start":
+                SET total_sessions to total_sessions + 1
+                ADD event.user_id to active_users
+            END IF
+            IF event.type equals "session_end":
+                SET session_duration to event.timestamp - find_session_start(event.session_id)
+                SET total_duration to total_duration + session_duration
+            END IF
+        END IF
+    END FOR
+    
+    SET avg_duration to total_duration / total_sessions
+    ADD {date: day, sessions: total_sessions, avg_duration: avg_duration, users: active_users.size} to daily_metrics
+END FOR
+
+OUTPUT daily_metrics
+END
+```
+**Why it's bad**: O(n×m) complexity scanning full table for each day, nested loops without indexing, recalculating same data repeatedly, inefficient session matching algorithm.
+
+### Example 2: GOOD - Efficient Aggregated Metrics Calculation
+
+**Task**: Calculate the same daily metrics with optimized approach
+**Good Approach**:
+```pseudocode
+BEGIN MetricsCalculation_Good
+INPUT events_table
+
+CLASS EfficientMetricsCalculator:
+    CONSTRUCTOR():
+        SET this.session_cache to create_lru_cache(10000)
+        SET this.daily_aggregates to create_hash_map()
+    END CONSTRUCTOR
+    
+    FUNCTION calculate_daily_metrics():
+        // Single pass with optimized query
+        SET events to QUERY "
+            SELECT 
+                DATE(timestamp) as date,
+                user_id,
+                session_id,
+                event_type,
+                timestamp,
+                LAG(timestamp) OVER (PARTITION BY session_id ORDER BY timestamp) as prev_timestamp
+            FROM events 
+            WHERE timestamp >= CURRENT_DATE - INTERVAL '30 days'
+            ORDER BY date, session_id, timestamp
+        "
+        
+        SET current_date to null
+        SET day_metrics to create_metrics_accumulator()
+        SET results to []
+        
+        FOR each event in events:
+            IF event.date != current_date:
+                IF current_date is not null:
+                    ADD finalize_day_metrics(day_metrics) to results
+                END IF
+                SET current_date to event.date
+                SET day_metrics to create_metrics_accumulator()
+            END IF
+            
+            this.update_day_metrics(day_metrics, event)
+        END FOR
+        
+        // Finalize last day
+        IF current_date is not null:
+            ADD finalize_day_metrics(day_metrics) to results
+        END IF
+        
+        RETURN results
+    END FUNCTION
+    
+    FUNCTION update_day_metrics(day_metrics, event):
+        day_metrics.active_users.add(event.user_id)
+        
+        IF event.event_type equals "session_start":
+            day_metrics.session_count += 1
+            this.session_cache.put(event.session_id, event.timestamp)
+        ELSE IF event.event_type equals "session_end":
+            SET start_time to this.session_cache.get(event.session_id)
+            IF start_time is not null:
+                SET duration to event.timestamp - start_time
+                day_metrics.total_duration += duration
+                day_metrics.completed_sessions += 1
+            END IF
+        END IF
+    END FUNCTION
+END CLASS
+
+CREATE calculator = EfficientMetricsCalculator()
+OUTPUT calculator.calculate_daily_metrics()
+END
+```
+**Why it's better**: O(n) linear complexity with single table scan, SQL-level aggregation with window functions, efficient caching for session matching, incremental accumulation pattern.
+
+### Example 3: BAD - Naive Statistical Analysis
+
+**Task**: Analyze tool usage patterns and success rates
+**Bad Approach**:
+```pseudocode
+BEGIN StatisticalAnalysis_Bad
+INPUT tool_events
+
+SET tool_stats to empty_map
+
+FOR each tool_name in get_all_tools():
+    SET successes to 0
+    SET failures to 0
+    SET execution_times to empty_list
+    SET total_usage to 0
+    
+    FOR each event in tool_events:
+        IF event.tool_name equals tool_name:
+            SET total_usage to total_usage + 1
+            
+            IF event.success equals true:
+                SET successes to successes + 1
+            ELSE:
+                SET failures to failures + 1
+            END IF
+            
+            ADD event.execution_time to execution_times
+        END IF
+    END FOR
+    
+    // Manual statistical calculations
+    SET sum_times to 0
+    FOR each time in execution_times:
+        SET sum_times to sum_times + time
+    END FOR
+    SET avg_time to sum_times / execution_times.length
+    
+    SET variance_sum to 0
+    FOR each time in execution_times:
+        SET variance_sum to variance_sum + (time - avg_time)^2
+    END FOR
+    SET std_dev to sqrt(variance_sum / execution_times.length)
+    
+    SET tool_stats[tool_name] to {
+        success_rate: successes / total_usage,
+        avg_execution_time: avg_time,
+        std_dev: std_dev,
+        total_usage: total_usage
+    }
+END FOR
+
+OUTPUT tool_stats
+END
+```
+**Why it's bad**: O(n×m) complexity with nested tool iteration, manual statistical calculations prone to errors, inefficient memory usage storing all values, no handling of edge cases like empty datasets.
+
+### Example 4: GOOD - Vectorized Statistical Analysis
+
+**Task**: Analyze tool usage patterns with efficient statistical methods
+**Good Approach**:
+```pseudocode
+BEGIN StatisticalAnalysis_Good
+INPUT tool_events
+
+CLASS StatisticalAnalyzer:
+    CONSTRUCTOR():
+        SET this.numpy to import_numpy()
+        SET this.pandas to import_pandas()
+        SET this.stats_cache to create_cache()
+    END CONSTRUCTOR
+    
+    FUNCTION analyze_tool_patterns():
+        // Convert to DataFrame for vectorized operations
+        SET df to this.pandas.DataFrame(tool_events)
+        
+        // Vectorized groupby aggregation
+        SET tool_metrics to df.groupby('tool_name').agg({
+            'success': ['count', 'sum', 'mean'],
+            'execution_time': ['mean', 'median', 'std', 'min', 'max'],
+            'timestamp': ['min', 'max'],
+            'user_id': 'nunique'
+        })
+        
+        // Flatten column names
+        tool_metrics.columns = ['_'.join(col).strip() for col in tool_metrics.columns]
+        
+        // Calculate additional metrics
+        tool_metrics['success_rate'] = tool_metrics['success_sum'] / tool_metrics['success_count']
+        tool_metrics['failure_rate'] = 1 - tool_metrics['success_rate']
+        tool_metrics['usage_span_days'] = (
+            tool_metrics['timestamp_max'] - tool_metrics['timestamp_min']
+        ).dt.days
+        
+        // Advanced statistics using numpy
+        SET advanced_stats to {}
+        FOR each tool_name, group in df.groupby('tool_name'):
+            SET exec_times to this.numpy.array(group['execution_time'])
+            
+            SET advanced_stats[tool_name] to {
+                'percentiles': {
+                    'p50': this.numpy.percentile(exec_times, 50),
+                    'p90': this.numpy.percentile(exec_times, 90),
+                    'p95': this.numpy.percentile(exec_times, 95),
+                    'p99': this.numpy.percentile(exec_times, 99)
+                },
+                'skewness': this.calculate_skewness(exec_times),
+                'kurtosis': this.calculate_kurtosis(exec_times),
+                'outlier_threshold': this.calculate_outlier_threshold(exec_times)
+            }
+        END FOR
+        
+        // Correlation analysis
+        SET correlation_matrix to this.analyze_tool_correlations(df)
+        
+        RETURN {
+            'basic_metrics': tool_metrics.to_dict('index'),
+            'advanced_stats': advanced_stats,
+            'correlations': correlation_matrix,
+            'summary': this.generate_insights_summary(tool_metrics)
+        }
+    END FUNCTION
+    
+    FUNCTION analyze_tool_correlations(df):
+        // Create pivot table for correlation analysis
+        SET pivot_df to df.pivot_table(
+            index=['user_id', 'session_id'],
+            columns='tool_name',
+            values='success',
+            aggfunc='mean',
+            fill_value=0
+        )
+        
+        RETURN pivot_df.corr()
+    END FUNCTION
+END CLASS
+
+CREATE analyzer = StatisticalAnalyzer()
+OUTPUT analyzer.analyze_tool_patterns()
+END
+```
+**Why it's better**: O(n) complexity with vectorized operations, leverages optimized pandas/numpy functions, comprehensive statistical analysis including percentiles and correlations, efficient memory usage and error handling.
+
+### Example 5: BAD - Inefficient Trend Analysis
+
+**Task**: Detect usage trends and patterns over time
+**Bad Approach**:
+```pseudocode
+BEGIN TrendAnalysis_Bad
+INPUT daily_usage_data
+
+SET trends to empty_list
+
+FOR each metric_type in ["sessions", "duration", "errors"]:
+    SET values to []
+    FOR each day in daily_usage_data:
+        ADD day[metric_type] to values
+    END FOR
+    
+    // Simple trend calculation
+    SET first_week_avg to 0
+    SET last_week_avg to 0
+    
+    FOR i = 0 to 6:
+        SET first_week_avg to first_week_avg + values[i]
+        SET last_week_avg to last_week_avg + values[values.length - 7 + i]
+    END FOR
+    
+    SET first_week_avg to first_week_avg / 7
+    SET last_week_avg to last_week_avg / 7
+    
+    IF last_week_avg > first_week_avg * 1.1:
+        SET trend to "increasing"
+    ELSE IF last_week_avg < first_week_avg * 0.9:
+        SET trend to "decreasing"
+    ELSE:
+        SET trend to "stable"
+    END IF
+    
+    ADD {metric: metric_type, trend: trend} to trends
+END FOR
+
+OUTPUT trends
+END
+```
+**Why it's bad**: Oversimplified trend detection ignoring statistical significance, hard-coded time windows, no seasonality consideration, crude threshold-based classification without confidence measures.
+
+### Example 6: GOOD - Advanced Time Series Trend Analysis
+
+**Task**: Detect trends using sophisticated time series analysis
+**Good Approach**:
+```pseudocode
+BEGIN TrendAnalysis_Good
+CLASS AdvancedTrendAnalyzer:
+    CONSTRUCTOR():
+        SET this.scipy to import_scipy()
+        SET this.pandas to import_pandas()
+        SET this.seasonal_decompose to import_seasonal_decompose()
+    END CONSTRUCTOR
+    
+    FUNCTION analyze_trends(daily_data, metrics=['sessions', 'duration', 'errors']):
+        SET df to this.pandas.DataFrame(daily_data)
+        SET df['date'] to this.pandas.to_datetime(df['date'])
+        SET df to df.set_index('date').resample('D').mean().fillna(method='forward')
+        
+        SET trend_analysis to {}
+        
+        FOR each metric in metrics:
+            SET series to df[metric]
+            
+            // Seasonal decomposition
+            IF series.length >= 14:  // Minimum for weekly seasonality
+                SET decomposition to this.seasonal_decompose(
+                    series, 
+                    model='additive', 
+                    period=7
+                )
+                SET trend_component to decomposition.trend.dropna()
+                SET seasonal_component to decomposition.seasonal
+                SET residual_component to decomposition.resid.dropna()
+            ELSE:
+                SET trend_component to series
+                SET seasonal_component to null
+                SET residual_component to null
+            END IF
+            
+            // Statistical trend testing
+            SET mann_kendall_result to this.perform_mann_kendall_test(series)
+            SET linear_regression to this.fit_linear_trend(series)
+            
+            // Change point detection
+            SET change_points to this.detect_change_points(series)
+            
+            // Growth rate analysis
+            SET growth_rates to series.pct_change().dropna()
+            SET growth_stats to {
+                'mean_growth': growth_rates.mean(),
+                'volatility': growth_rates.std(),
+                'positive_growth_days': (growth_rates > 0).sum(),
+                'negative_growth_days': (growth_rates < 0).sum()
+            }
+            
+            // Forecasting
+            SET forecast to this.generate_forecast(series, periods=7)
+            
+            SET trend_analysis[metric] to {
+                'statistical_trend': {
+                    'direction': mann_kendall_result.trend,
+                    'p_value': mann_kendall_result.p_value,
+                    'confidence': 1 - mann_kendall_result.p_value
+                },
+                'linear_trend': {
+                    'slope': linear_regression.slope,
+                    'r_squared': linear_regression.r_squared,
+                    'significance': linear_regression.p_value < 0.05
+                },
+                'seasonality': {
+                    'has_weekly_pattern': seasonal_component is not null,
+                    'seasonal_strength': this.calculate_seasonal_strength(seasonal_component) IF seasonal_component else 0
+                },
+                'change_points': change_points,
+                'growth_analysis': growth_stats,
+                'forecast': forecast,
+                'trend_classification': this.classify_trend(mann_kendall_result, linear_regression)
+            }
+        END FOR
+        
+        RETURN trend_analysis
+    END FUNCTION
+    
+    FUNCTION perform_mann_kendall_test(series):
+        // Non-parametric trend test
+        SET n to series.length
+        SET s to 0
+        
+        FOR i = 0 to n-2:
+            FOR j = i+1 to n-1:
+                IF series[j] > series[i]:
+                    SET s to s + 1
+                ELSE IF series[j] < series[i]:
+                    SET s to s - 1
+                END IF
+            END FOR
+        END FOR
+        
+        SET var_s to n * (n - 1) * (2 * n + 5) / 18
+        SET z_score to s / sqrt(var_s)
+        SET p_value to 2 * (1 - this.scipy.stats.norm.cdf(abs(z_score)))
+        
+        RETURN {
+            trend: "increasing" IF s > 0 ELSE "decreasing" IF s < 0 ELSE "stable",
+            p_value: p_value,
+            z_score: z_score
+        }
+    END FUNCTION
+END CLASS
+
+CREATE analyzer = AdvancedTrendAnalyzer()
+OUTPUT analyzer.analyze_trends(daily_usage_data)
+END
+```
+**Why it's better**: Statistical significance testing with Mann-Kendall test, seasonal decomposition for pattern detection, change point detection, confidence measures, forecasting capabilities with comprehensive trend classification.
+
+## Self-Critique Checklist
+- [ ] Used efficient pandas/numpy operations?
+- [ ] Implemented proper statistical methods?
+- [ ] Optimized for large dataset processing?
+- [ ] Added comprehensive trend analysis?
+- [ ] Created actionable metrics and insights?
+- [ ] Maintained analytical accuracy and performance?
+- [ ] Designed scalable analytics patterns?
+
+Remember: You are creating analytics systems that provide actionable insights into Claude Code usage patterns while maintaining high performance and statistical rigor through sophisticated data analysis techniques.

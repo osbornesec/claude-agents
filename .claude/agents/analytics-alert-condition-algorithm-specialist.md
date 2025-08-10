@@ -369,6 +369,229 @@ uv run python -m timeit -s "from alerts import process_alerts" "process_alerts(t
 uv run python -m cProfile -s cumulative alert_processor.py
 ```
 
+## Few-Shot Examples
+
+### Example 1: BAD - Inefficient Threshold Detection
+
+**Task**: Design an alert system for monitoring system metrics
+**Bad Approach**:
+```pseudocode
+BEGIN AlertSystem_Bad
+WHILE system is running:
+    FOR each metric in all_metrics:
+        SET current_value to get_current_value(metric)
+        FOR each historical_value in get_all_historical_data(metric):
+            CALCULATE running_average()
+        END FOR
+        
+        FOR each threshold in all_thresholds:
+            IF current_value > threshold:
+                CALL send_alert_immediately(metric, current_value)
+            END IF
+        END FOR
+        
+        SLEEP 1_second
+    END FOR
+END WHILE
+END
+```
+**Why it's bad**: Recalculates entire historical averages on every iteration resulting in O(n×m×h) complexity, causes alert flooding without deduplication, no context awareness for time-of-day patterns.
+
+### Example 2: GOOD - Efficient Threshold Detection with Smart Alerting
+
+**Task**: Design the same alert system with optimal performance
+**Good Approach**:
+```pseudocode
+BEGIN AlertSystem_Good
+INITIALIZE rolling_averages as empty_map
+INITIALIZE alert_cooldown as empty_map  
+INITIALIZE anomaly_detector as create_statistical_detector()
+
+WHILE system is running:
+    SET batch_metrics to get_metrics_batch()
+    
+    FOR each metric in batch_metrics:
+        // Update rolling statistics efficiently
+        SET rolling_averages[metric] to update_rolling_average(
+            rolling_averages[metric], 
+            metric.current_value,
+            window_size=100
+        )
+        
+        // Context-aware threshold calculation
+        SET dynamic_threshold to calculate_adaptive_threshold(
+            rolling_averages[metric],
+            time_of_day_factor(),
+            historical_patterns[metric]
+        )
+        
+        // Smart alerting with deduplication
+        IF metric.current_value > dynamic_threshold:
+            IF not in_cooldown(alert_cooldown[metric]):
+                SET severity to calculate_severity(metric.current_value, dynamic_threshold)
+                CALL send_alert_with_context(metric, severity, rolling_averages[metric])
+                CALL set_cooldown(alert_cooldown[metric], severity_based_duration(severity))
+            END IF
+        END IF
+    END FOR
+    
+    SLEEP 30_seconds  // Batch processing reduces load
+END WHILE
+END
+```
+**Why it's better**: O(1) rolling average updates, intelligent alerting with cooldown periods prevents spam, adaptive thresholds consider time patterns and historical context.
+
+### Example 3: BAD - Deeply Nested Alert Classification
+
+**Task**: Classify alert severity based on multiple conditions
+**Bad Approach**:
+```pseudocode
+BEGIN AlertClassification_Bad
+INPUT severity, frequency, impact, duration
+
+IF severity equals "high":
+    IF frequency > 10:
+        IF impact equals "critical":
+            IF duration > 300:
+                RETURN "P1_CRITICAL"
+            ELSE:
+                RETURN "P2_HIGH"
+            END IF
+        ELSE IF impact equals "major":
+            RETURN "P2_HIGH"
+        END IF
+    ELSE IF frequency > 5:
+        IF impact equals "critical":
+            RETURN "P2_HIGH"
+        END IF
+    END IF
+ELSE IF severity equals "medium":
+    IF frequency > 15:
+        IF impact equals "critical":
+            IF duration > 600:
+                RETURN "P2_HIGH"
+            ELSE:
+                RETURN "P3_MEDIUM"
+            END IF
+        END IF
+    END IF
+END IF
+
+RETURN "P4_LOW"
+END
+```
+**Why it's bad**: High cyclomatic complexity (CC > 15), deeply nested conditionals difficult to maintain, hard to add new classification rules without breaking existing logic.
+
+### Example 4: GOOD - Decision Table Implementation
+
+**Task**: Classify alerts using a cleaner approach
+**Good Approach**:
+```pseudocode
+BEGIN AlertClassification_Good
+CREATE ALERT_CLASSIFICATION_TABLE with:
+    ("high", "frequent", "critical", "long") -> "P1_CRITICAL"
+    ("high", "frequent", "critical", "short") -> "P2_HIGH"
+    ("high", "frequent", "major", "any") -> "P2_HIGH"
+    ("high", "moderate", "critical", "any") -> "P2_HIGH"
+    ("medium", "very_frequent", "critical", "long") -> "P2_HIGH"
+    ("medium", "very_frequent", "critical", "short") -> "P3_MEDIUM"
+    // ... complete decision table
+
+FUNCTION classify_alert(severity, frequency, impact, duration):
+    SET freq_band to categorize_frequency(frequency)
+    SET duration_band to categorize_duration(duration)
+    
+    SET key to (severity, freq_band, impact, duration_band)
+    RETURN ALERT_CLASSIFICATION_TABLE.get(key, "P4_LOW")
+END FUNCTION
+END
+```
+**Why it's better**: Low cyclomatic complexity (CC = 2), decision table is easy to maintain and extend, clear separation of classification logic from implementation.
+
+### Example 5: BAD - Naive Alert Correlation
+
+**Task**: Correlate related alerts to reduce noise
+**Bad Approach**:
+```pseudocode
+BEGIN AlertCorrelation_Bad
+INPUT alerts
+CREATE correlated as empty_list
+
+FOR each alert in alerts:
+    IF alert.type equals "cpu_high":
+        CREATE related as empty_list
+        FOR each other in alerts:
+            IF other.type equals "memory_high":
+                IF abs(alert.timestamp - other.timestamp) < 60:
+                    ADD other to related
+                END IF
+            ELSE IF other.type equals "response_slow":
+                IF abs(alert.timestamp - other.timestamp) < 120:
+                    ADD other to related
+                END IF
+            END IF
+        END FOR
+        
+        IF related.length > 0:
+            IF related.length > 2:
+                ADD create_composite_alert("system_overload", [alert] + related) to correlated
+            ELSE:
+                ADD create_composite_alert("resource_pressure", [alert] + related) to correlated
+            END IF
+        END IF
+    ELSE IF alert.type equals "disk_full":
+        // More nested correlation logic...
+    END IF
+END FOR
+
+RETURN correlated
+END
+```
+**Why it's bad**: High complexity with nested loops O(n²), hardcoded correlation rules mixed with processing logic, difficult to add new correlation patterns.
+
+### Example 6: GOOD - Rule-Based Correlation Engine
+
+**Task**: Correlate alerts using a scalable architecture
+**Good Approach**:
+```pseudocode
+BEGIN AlertCorrelation_Good
+CLASS AlertCorrelationEngine:
+    CONSTRUCTOR():
+        SET this.correlation_rules to [
+            create_correlation_rule(
+                primary="cpu_high",
+                related=["memory_high", "response_slow"],
+                time_window=120,
+                min_matches=2,
+                result_type="system_overload"
+            ),
+            create_correlation_rule(
+                primary="disk_full", 
+                related=["io_wait", "app_slow"],
+                time_window=60,
+                min_matches=1,
+                result_type="storage_issue"
+            )
+            // Additional rules...
+        ]
+    END CONSTRUCTOR
+    
+    FUNCTION correlate(alerts):
+        SET alert_index to build_temporal_index(alerts)
+        CREATE correlated as empty_list
+        
+        FOR each rule in this.correlation_rules:
+            SET matches to find_matches(alert_index, rule)
+            ADD create_composite_alerts(matches, rule) to correlated
+        END FOR
+        
+        RETURN correlated
+    END FUNCTION
+END CLASS
+END
+```
+**Why it's better**: O(n) complexity with efficient indexing, declarative correlation rules separated from processing logic, easily extensible for new correlation patterns.
+
 ## Self-Critique Checklist
 - [ ] Used ContextS for algorithm research?
 - [ ] Reduced cyclomatic complexity by 60%+?

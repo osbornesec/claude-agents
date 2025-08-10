@@ -541,6 +541,115 @@ uv run python -m timeit -s "from formatter import format_data" "format_data(test
 uv run python -m cProfile -s cumulative display_formatter.py
 ```
 
+## Few-Shot Examples
+
+### Example 1: BAD - Inefficient String Concatenation
+
+**Task**: Format a large dataset for table display
+**Bad Approach**:
+```pseudocode
+BEGIN DisplayFormattingBad
+INPUT data_array[1000]
+SET formatted_output to ""
+
+FOR each item in data_array:
+    SET formatted_output to formatted_output + "Item: " + item + "\n"
+    SET formatted_output to formatted_output + "Status: Active\n"
+    SET formatted_output to formatted_output + "---\n"
+END FOR
+
+OUTPUT formatted_output
+END
+```
+**Why it's bad**: String concatenation creates new objects for each operation, resulting in O(n²) time complexity and excessive memory usage.
+
+### Example 2: GOOD - Buffer-Based Formatting
+
+**Task**: Format the same dataset efficiently
+**Good Approach**:
+```pseudocode
+BEGIN DisplayFormattingGood
+INPUT data_array[1000]
+CREATE string_buffer with initial capacity = data_array.length * 50
+
+FOR each item in data_array:
+    APPEND "Item: " + item + "\n" to string_buffer
+    APPEND "Status: Active\n" to string_buffer
+    APPEND "---\n" to string_buffer
+END FOR
+
+OUTPUT string_buffer.toString()
+END
+```
+**Why it's better**: Pre-allocated buffer with O(1) amortized append operations achieves O(n) overall complexity.
+
+### Example 3: BAD - Monolithic Format Function
+
+**Task**: Support multiple output formats
+**Bad Approach**:
+```pseudocode
+BEGIN MonolithicFormatter
+INPUT data, format_type, options
+SET output to ""
+
+IF format_type equals "table":
+    FOR each row in data:
+        IF options.headers:
+            SET output to output + format_header(row)
+        END IF
+        SET output to output + format_row(row)
+        IF options.borders:
+            SET output to output + draw_border()
+        END IF
+    END FOR
+ELSE IF format_type equals "json":
+    SET output to "{"
+    FOR each item in data:
+        SET output to output + format_json_item(item)
+    END FOR
+    SET output to output + "}"
+ELSE IF format_type equals "html":
+    SET output to "<table>"
+    FOR each row in data:
+        SET output to output + "<tr>" + format_html_row(row) + "</tr>"
+    END FOR
+    SET output to output + "</table>"
+END IF
+
+OUTPUT output
+END
+```
+**Why it's bad**: High cyclomatic complexity (CC > 15), violates single responsibility principle, difficult to maintain and extend.
+
+### Example 4: GOOD - Registry Pattern with Specialized Formatters
+
+**Task**: Support multiple output formats with clean architecture
+**Good Approach**:
+```pseudocode
+BEGIN FormatterRegistry
+CREATE formatters_map with:
+    "table" -> TableFormatter()
+    "json" -> JSONFormatter()  
+    "html" -> HTMLFormatter()
+
+FUNCTION format(data, format_type, options):
+    SET formatter to formatters_map.get(format_type)
+    IF formatter is null:
+        THROW error "Unknown format: " + format_type
+    END IF
+    RETURN formatter.format(data, options)
+END FUNCTION
+
+CLASS TableFormatter:
+    FUNCTION format(data, options):
+        CREATE renderer with options
+        RETURN renderer.render(data)
+    END FUNCTION
+END CLASS
+END
+```
+**Why it's better**: Low cyclomatic complexity (CC = 2), follows single responsibility principle, easily extensible for new formats.
+
 ## Self-Critique Checklist
 - [ ] Used ContextS for visualization research?
 - [ ] Reduced cyclomatic complexity by 75%+?

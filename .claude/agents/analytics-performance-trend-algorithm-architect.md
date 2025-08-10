@@ -679,6 +679,323 @@ uv run python -m cProfile -s cumulative performance_analysis.py
 uv run python -m memory_profiler performance_trends.py
 ```
 
+## Few-Shot Examples
+
+### Example 1: BAD - Naive Trend Calculation
+
+**Task**: Analyze performance trends from historical data
+**Bad Approach**:
+```pseudocode
+BEGIN TrendAnalysis_Bad
+INPUT performance_data
+
+FOR each time_period in last_year:
+    SET sum to 0
+    SET count to 0
+    FOR each data_point in performance_data:
+        IF data_point.timestamp in time_period:
+            SET sum to sum + data_point.value
+            SET count to count + 1
+        END IF
+    END FOR
+    
+    IF count > 0:
+        SET average to sum / count
+        PRINT "Average for period: " + average
+    END IF
+END FOR
+
+// Simple linear trend
+SET first_value to performance_data[0].value
+SET last_value to performance_data[last].value
+SET trend to (last_value - first_value) / data_length
+
+IF trend > 0:
+    PRINT "Performance improving"
+ELSE:
+    PRINT "Performance declining"
+END IF
+END
+```
+**Why it's bad**: Quadratic complexity O(n×m), oversimplified linear trend analysis, no statistical validation, missing outlier handling, ignores seasonality patterns.
+
+### Example 2: GOOD - Statistical Trend Analysis with Pattern Recognition
+
+**Task**: Analyze the same performance trends with statistical rigor
+**Good Approach**:
+```pseudocode
+BEGIN TrendAnalysis_Good
+INPUT performance_data
+
+// Preprocess and clean data
+SET cleaned_data to remove_outliers_iqr(performance_data)
+SET normalized_data to apply_seasonal_decomposition(cleaned_data)
+
+// Efficient time-series analysis
+SET time_buckets to create_time_buckets(cleaned_data, bucket_size="1_day")
+
+FOR each bucket in time_buckets:
+    SET bucket.statistics to calculate_comprehensive_stats(bucket.data)
+    // Includes: mean, median, std_dev, percentiles
+END FOR
+
+// Multiple trend analysis methods
+SET linear_trend to calculate_linear_regression(time_buckets)
+SET seasonal_trend to detect_seasonal_patterns(time_buckets, period="weekly")
+SET moving_average_trend to calculate_exponential_moving_average(time_buckets, alpha=0.3)
+
+// Statistical significance testing
+SET trend_significance to perform_mann_kendall_test(time_buckets)
+SET confidence_interval to calculate_confidence_interval(linear_trend, 0.95)
+
+// Comprehensive trend report
+CREATE trend_report with:
+    linear_slope: linear_trend.slope
+    p_value: trend_significance.p_value
+    confidence_interval: confidence_interval
+    seasonal_patterns: seasonal_trend
+    forecast_next_30_days: generate_forecast(moving_average_trend)
+    anomaly_periods: detect_anomalous_periods(time_buckets)
+
+RETURN trend_report
+END
+```
+**Why it's better**: Linear complexity O(n), statistical rigor with significance testing, multi-method analysis, robust preprocessing, predictive capability.
+
+### Example 3: BAD - Inefficient Change Point Detection
+
+**Task**: Detect performance degradations in metrics
+**Bad Approach**:
+```pseudocode
+BEGIN ChangeDetection_Bad
+INPUT history
+CREATE changes as empty_list
+
+FOR i = 30 to history.length:
+    SET recent to history[i-30:i]
+    SET previous to history[max(0, i-60):i-30]
+    
+    IF previous.length < 15:
+        CONTINUE
+    END IF
+    
+    SET recent_mean to sum(recent) / recent.length
+    SET previous_mean to sum(previous) / previous.length
+    
+    // Calculate variance manually
+    SET recent_var to 0
+    FOR each x in recent:
+        SET recent_var to recent_var + (x - recent_mean)^2
+    END FOR
+    SET recent_var to recent_var / recent.length
+    
+    SET previous_var to 0
+    FOR each x in previous:
+        SET previous_var to previous_var + (x - previous_mean)^2
+    END FOR
+    SET previous_var to previous_var / previous.length
+    
+    // Manual t-test calculation
+    IF recent_var > 0 AND previous_var > 0:
+        SET t_stat to (recent_mean - previous_mean) / sqrt(recent_var/recent.length + previous_var/previous.length)
+        
+        IF abs(t_stat) > 2.0:  // Crude significance test
+            IF recent_mean > previous_mean * 1.1:
+                ADD {index: i, type: "degradation", magnitude: (recent_mean - previous_mean) / previous_mean} to changes
+            ELSE IF recent_mean < previous_mean * 0.9:
+                ADD {index: i, type: "improvement", magnitude: (previous_mean - recent_mean) / previous_mean} to changes
+            END IF
+        END IF
+    END IF
+END FOR
+
+RETURN changes
+END
+```
+**Why it's bad**: O(n²) complexity with nested loops, manual statistical calculations prone to errors, crude significance testing, fixed window sizes.
+
+### Example 4: GOOD - CUSUM Change Point Detection
+
+**Task**: Detect performance changes using robust statistical methods
+**Good Approach**:
+```pseudocode
+BEGIN ChangeDetection_Good
+CLASS CUSUMDetector:
+    CONSTRUCTOR(threshold=5, drift=1):
+        SET this.threshold to threshold
+        SET this.drift to drift
+    END CONSTRUCTOR
+    
+    FUNCTION find_changepoints(series):
+        CREATE changepoints as empty_list
+        SET s_pos to 0
+        SET s_neg to 0
+        SET mean to calculate_mean(series[0:30])  // Initial baseline
+        SET std to calculate_std(series[0:30])
+        
+        FOR i, value in series:
+            SET normalized to (value - mean) / std IF std > 0 ELSE 0
+            
+            SET s_pos to max(0, s_pos + normalized - this.drift)
+            SET s_neg to max(0, s_neg - normalized - this.drift)
+            
+            IF s_pos > this.threshold OR s_neg > this.threshold:
+                ADD create_changepoint(i, normalized, classify_change(normalized)) to changepoints
+                // Reset after detection
+                SET s_pos to 0
+                SET s_neg to 0
+                SET mean to calculate_mean(series[max(0, i-30):i+1])
+                SET std to calculate_std(series[max(0, i-30):i+1])
+            END IF
+        END FOR
+        
+        RETURN changepoints
+    END FUNCTION
+    
+    FUNCTION classify_change(magnitude):
+        IF magnitude > 0:
+            RETURN "degradation" IF magnitude > 2 ELSE "minor_degradation"
+        ELSE:
+            RETURN "improvement" IF magnitude < -2 ELSE "minor_improvement"
+        END IF
+    END FUNCTION
+END CLASS
+END
+```
+**Why it's better**: O(n) linear complexity, robust CUSUM algorithm, adaptive baseline updates, proper statistical classification.
+
+### Example 5: BAD - Manual Correlation Analysis
+
+**Task**: Find correlations between performance metrics
+**Bad Approach**:
+```pseudocode
+BEGIN CorrelationAnalysis_Bad
+INPUT metrics_dict
+CREATE correlations as empty_dict
+
+FOR metric1_name, metric1_data in metrics_dict:
+    FOR metric2_name, metric2_data in metrics_dict:
+        IF metric1_name != metric2_name:
+            IF metric1_data.length == metric2_data.length:
+                IF metric1_data.length > 10:
+                    // Manual correlation calculation
+                    SET mean1 to sum(metric1_data) / metric1_data.length
+                    SET mean2 to sum(metric2_data) / metric2_data.length
+                    
+                    SET numerator to 0
+                    FOR x, y in zip(metric1_data, metric2_data):
+                        SET numerator to numerator + (x - mean1) * (y - mean2)
+                    END FOR
+                    
+                    SET sum_sq1 to 0
+                    FOR x in metric1_data:
+                        SET sum_sq1 to sum_sq1 + (x - mean1)^2
+                    END FOR
+                    
+                    SET sum_sq2 to 0
+                    FOR y in metric2_data:
+                        SET sum_sq2 to sum_sq2 + (y - mean2)^2
+                    END FOR
+                    
+                    IF sum_sq1 > 0 AND sum_sq2 > 0:
+                        SET denominator to sqrt(sum_sq1 * sum_sq2)
+                        SET correlation to numerator / denominator
+                        
+                        IF abs(correlation) > 0.7:
+                            SET correlations[metric1_name + "-" + metric2_name] to {
+                                value: correlation,
+                                strength: "strong" IF abs(correlation) > 0.9 ELSE "moderate"
+                            }
+                        END IF
+                    END IF
+                END IF
+            END IF
+        END IF
+    END FOR
+END FOR
+
+RETURN correlations
+END
+```
+**Why it's bad**: O(n³) complexity with nested loops, manual statistical calculations, no p-value testing, inefficient memory usage.
+
+### Example 6: GOOD - Vectorized Correlation Analysis
+
+**Task**: Efficiently analyze metric correlations
+**Good Approach**:
+```pseudocode
+BEGIN CorrelationAnalysis_Good
+CLASS CorrelationAnalyzer:
+    CONSTRUCTOR(threshold=0.7):
+        SET this.threshold to threshold
+        SET this.calculator to create_correlation_calculator()
+    END CONSTRUCTOR
+    
+    FUNCTION analyze(metrics_dict):
+        SET metric_pairs to generate_pairs(metrics_dict)
+        SET correlations to this.calculator.compute_batch(metric_pairs)
+        RETURN filter_significant(correlations)
+    END FUNCTION
+    
+    FUNCTION generate_pairs(metrics_dict):
+        IMPORT combinations
+        RETURN [
+            (name1, data1, name2, data2)
+            FOR (name1, data1), (name2, data2) in combinations(metrics_dict.items(), 2)
+            IF data1.length == data2.length > 10
+        ]
+    END FUNCTION
+    
+    FUNCTION filter_significant(correlations):
+        RETURN {
+            pair: stats
+            FOR pair, stats in correlations.items()
+            IF abs(stats.correlation) > this.threshold
+        }
+    END FUNCTION
+END CLASS
+
+CLASS CorrelationCalculator:
+    FUNCTION compute_batch(metric_pairs):
+        CREATE results as empty_dict
+        
+        FOR name1, data1, name2, data2 in metric_pairs:
+            SET correlation to numpy_corrcoef(data1, data2)[0, 1]
+            
+            IF not is_nan(correlation):
+                SET results[name1 + "-" + name2] to {
+                    correlation: correlation,
+                    p_value: compute_p_value(correlation, data1.length),
+                    strength: classify_strength(correlation)
+                }
+            END IF
+        END FOR
+        
+        RETURN results
+    END FUNCTION
+    
+    FUNCTION compute_p_value(r, n):
+        SET t_stat to r * sqrt(n - 2) / sqrt(1 - r^2)
+        RETURN 2 * (1 - t_cdf(abs(t_stat), n - 2))
+    END FUNCTION
+    
+    FUNCTION classify_strength(correlation):
+        SET abs_corr to abs(correlation)
+        IF abs_corr > 0.9:
+            RETURN "very_strong"
+        ELSE IF abs_corr > 0.7:
+            RETURN "strong"
+        ELSE IF abs_corr > 0.5:
+            RETURN "moderate"
+        ELSE:
+            RETURN "weak"
+        END IF
+    END FUNCTION
+END CLASS
+END
+```
+**Why it's better**: O(n) complexity with efficient pair generation, vectorized numpy operations, statistical p-value testing, proper strength classification.
+
 ## Self-Critique Checklist
 - [ ] Used ContextS for statistical research?
 - [ ] Reduced cyclomatic complexity by 75%+?

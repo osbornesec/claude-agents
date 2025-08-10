@@ -323,6 +323,233 @@ uv run python -m cProfile -s cumulative extraction_script.py
 uv run python -m memory_profiler extraction_script.py
 ```
 
+## Few-Shot Examples
+
+### Example 1: BAD - Inefficient Character-by-Character Parsing
+
+**Task**: Parse message content to extract tags like @username, #hashtag, http:// links
+**Bad Approach**:
+```pseudocode
+BEGIN IneffectiveMessageParsing
+INPUT message_text
+SET current_position to 0
+CREATE empty results_list
+
+WHILE current_position < message_text.length:
+    FOR tag_type in ["@username", "#hashtag", "http://"]:
+        SET found_tag to ""
+        SET temp_position to current_position
+        
+        FOR each character in tag_type:
+            IF temp_position >= message_text.length:
+                BREAK
+            END IF
+            IF message_text[temp_position] != character:
+                BREAK
+            END IF
+            SET found_tag to found_tag + character
+            INCREMENT temp_position
+        END FOR
+        
+        IF found_tag equals tag_type:
+            EXTRACT content until space or end
+            ADD to results_list
+            SET current_position to temp_position
+            BREAK
+        END IF
+    END FOR
+    
+    INCREMENT current_position
+END WHILE
+
+OUTPUT results_list
+END
+```
+**Why it's bad**: O(n*m*k) complexity where n=message length, m=tag types, k=tag length. Performs redundant character comparisons and lacks efficient pattern matching.
+
+### Example 2: GOOD - State Machine Pattern Matching
+
+**Task**: Parse the same message content efficiently
+**Good Approach**:
+```pseudocode
+BEGIN EfficientMessageParsing
+INPUT message_text
+CREATE state_machine with states: NORMAL, USERNAME, HASHTAG, URL
+SET current_state to NORMAL
+SET current_token to ""
+CREATE results_list
+
+FOR each character in message_text:
+    SWITCH current_state:
+        CASE NORMAL:
+            IF character equals '@':
+                SET current_state to USERNAME
+            ELSE IF character equals '#':
+                SET current_state to HASHTAG  
+            ELSE IF character equals 'h' AND next_chars_match("ttp"):
+                SET current_state to URL
+            END IF
+            
+        CASE USERNAME, HASHTAG, URL:
+            IF character is alphanumeric OR character equals '_':
+                APPEND character to current_token
+            ELSE:
+                ADD current_token to results_list
+                SET current_state to NORMAL
+                CLEAR current_token
+            END IF
+    END SWITCH
+END FOR
+
+OUTPUT results_list
+END
+```
+**Why it's better**: O(n) complexity with single-pass processing, uses efficient state transitions without backtracking.
+
+### Example 3: BAD - Deeply Nested Message Processing
+
+**Task**: Extract content from nested message structures
+**Bad Approach**:
+```pseudocode
+BEGIN DeepNestedProcessing
+INPUT message
+CREATE results_list
+
+IF message.type equals "text":
+    ADD message.content to results_list
+ELSE IF message.type equals "composite":
+    IF message.has_parts:
+        FOR each part in message.parts:
+            IF part.type equals "text":
+                ADD part.content to results_list
+            ELSE IF part.type equals "image":
+                IF part.has_alt_text:
+                    ADD part.alt_text to results_list
+                END IF
+            ELSE IF part.type equals "nested":
+                IF part.has_children:
+                    FOR each child in part.children:
+                        IF child.type equals "text":
+                            ADD child.content to results_list
+                        ELSE IF child.type equals "media":
+                            FOR each media_item in child.items:
+                                IF media_item.has_caption:
+                                    ADD media_item.caption to results_list
+                                END IF
+                            END FOR
+                        END IF
+                    END FOR
+                END IF
+            END IF
+        END FOR
+    END IF
+END IF
+
+OUTPUT results_list
+END
+```
+**Why it's bad**: High cyclomatic complexity (CC > 20), deeply nested structure, difficult to maintain and extend for new message types.
+
+### Example 4: GOOD - Visitor Pattern with Delegation
+
+**Task**: Extract content from the same nested structures cleanly
+**Good Approach**:
+```pseudocode
+BEGIN VisitorPatternExtraction
+CREATE content_extractors_map with:
+    "text" -> TextExtractor()
+    "composite" -> CompositeExtractor()  
+    "image" -> ImageExtractor()
+    "nested" -> NestedExtractor()
+
+FUNCTION extract_content(message):
+    SET extractor to content_extractors_map.get(message.type)
+    IF extractor is null:
+        RETURN empty_list
+    END IF
+    RETURN extractor.extract(message)
+END FUNCTION
+
+CLASS CompositeExtractor:
+    FUNCTION extract(message):
+        CREATE results_list
+        FOR each part in message.parts:
+            SET part_content to extract_content(part)
+            ADD part_content to results_list
+        END FOR
+        RETURN results_list
+    END FUNCTION
+END CLASS
+
+CLASS NestedExtractor:
+    FUNCTION extract(message):
+        RETURN flatten([extract_content(child) for child in message.children])
+    END FUNCTION
+END CLASS
+END
+```
+**Why it's better**: Low cyclomatic complexity (CC = 2), follows single responsibility principle, easily extensible with new extractors.
+
+### Example 5: BAD - Recursive Stack Overflow Risk
+
+**Task**: Process deeply nested message tree
+**Bad Approach**:
+```pseudocode
+BEGIN RecursiveStackRisk
+FUNCTION extract_tree_content(node, depth):
+    CREATE results_list
+    
+    IF depth > 100:  // Arbitrary limit, but still risky
+        RETURN empty_list
+    END IF
+    
+    IF node.has_content:
+        ADD node.content to results_list
+    END IF
+    
+    IF node.has_children:
+        FOR each child in node.children:
+            SET child_results to extract_tree_content(child, depth + 1)
+            ADD child_results to results_list
+        END FOR
+    END IF
+    
+    RETURN results_list
+END FUNCTION
+END
+```
+**Why it's bad**: Risk of stack overflow with deep nesting, recursive calls consume stack space, difficult to control memory usage.
+
+### Example 6: GOOD - Iterative Tree Traversal
+
+**Task**: Process the same deeply nested tree safely
+**Good Approach**:
+```pseudocode
+BEGIN IterativeTreeTraversal
+FUNCTION extract_tree_content(root):
+    CREATE stack with root_node
+    CREATE results_list
+    
+    WHILE stack is not empty:
+        SET current_node to stack.pop()
+        
+        IF current_node.has_content:
+            ADD current_node.content to results_list
+        END IF
+        
+        IF current_node.has_children:
+            FOR each child in reversed(current_node.children):
+                ADD child to stack
+            END FOR
+        END IF
+    END WHILE
+    
+    RETURN results_list
+END FUNCTION
+END
+```
+**Why it's better**: Stack-safe for any depth, uses constant stack space, easily handles arbitrarily deep nesting without recursion limits.
+
 ## Self-Critique Checklist
 - [ ] Used ContextS for algorithm research?
 - [ ] Reduced cyclomatic complexity by 50%+?
