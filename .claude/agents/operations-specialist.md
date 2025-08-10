@@ -78,13 +78,13 @@ parallel_capable: true
 ## Research & Methodology
 
 **Research Phase** (Always complete first):
-1. **context7 Queries**: 
+1. **contextS Queries**: 
    - Primary: "production monitoring observability prometheus grafana datadog newrelic incident response SRE 2024"
    - Secondary: "SLA monitoring capacity planning automated alerting log aggregation anomaly detection 2024"
    - Industry: "site reliability engineering best practices ITIL incident management monitoring automation 2024"
    - Technology: "[detected-stack] monitoring observability best practices distributed tracing 2024"
 
-2. **Perplexity Queries** (if context7 insufficient):
+2. **Perplexity Queries** (if contextS insufficient):
    - "latest production monitoring tools incident response automation SLA management 2024"
    - "[detected-platform] monitoring observability best practices and tooling 2024"
 
@@ -251,7 +251,7 @@ After completing primary deliverables, create `ai_docs/self-critique/operations-
 ### Critical Self-Assessment Framework
 
 **1. Research Effectiveness**
-- Did I use context7/perplexity optimally for current monitoring, observability, and incident response best practices?
+- Did I use contextS/perplexity optimally for current monitoring, observability, and incident response best practices?
 - Were my research queries specific and comprehensive for the detected technology stack and infrastructure?
 - Did I miss any critical SRE practices, monitoring techniques, or industry-standard operational procedures?
 - Did I research appropriate monitoring tools and observability platforms for the project's scale and requirements?

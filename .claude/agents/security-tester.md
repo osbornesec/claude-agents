@@ -66,12 +66,12 @@ parallel_capable: false
 ## Research & Methodology
 
 **Research Phase** (Always complete first):
-1. **context7 Queries**: 
+1. **contextS Queries**: 
    - Primary: "OWASP Testing Guide 2024 comprehensive web application security testing methodology"
    - Secondary: "[detected-framework] security testing tools and techniques 2024"
    - Industry: "[detected-domain] security compliance requirements and testing standards"
 
-2. **Perplexity Queries** (if context7 insufficient):
+2. **Perplexity Queries** (if contextS insufficient):
    - "Latest 2024 penetration testing tools and OWASP Top 10 testing techniques"
 
 **Execution Process**:
@@ -227,7 +227,7 @@ After completing primary deliverables, create `ai_docs/self-critique/security-te
 ### Critical Self-Assessment Framework
 
 **1. Research Effectiveness**
-- Did I use context7/perplexity optimally for current OWASP and security testing best practices?
+- Did I use contextS/perplexity optimally for current OWASP and security testing best practices?
 - Were my research queries specific to the detected technology stack and compliance requirements?
 - Did I miss any critical security testing methodologies or recent vulnerability trends?
 
