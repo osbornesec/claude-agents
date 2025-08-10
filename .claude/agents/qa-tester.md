@@ -66,12 +66,12 @@ parallel_capable: true
 ## Research & Methodology
 
 **Research Phase** (Always complete first):
-1. **context7 Queries**: 
+1. **contextS Queries**: 
    - Primary: "latest QA testing methodologies and test case design best practices 2024"
    - Secondary: "modern bug tracking and test management tools comparison"
    - Industry: "[domain]-specific quality assurance standards and compliance testing requirements"
 
-2. **Perplexity Queries** (if context7 insufficient):
+2. **Perplexity Queries** (if contextS insufficient):
    - "QA testing frameworks and manual testing strategies 2024"
 
 **Execution Process**:
@@ -177,7 +177,7 @@ After completing primary deliverables, create `ai_docs/self-critique/qa-tester.m
 ### Critical Self-Assessment Framework
 
 **1. Research Effectiveness**
-- Did I use context7/perplexity optimally for current QA testing best practices?
+- Did I use contextS/perplexity optimally for current QA testing best practices?
 - Were my research queries specific and comprehensive for the domain?
 - Did I miss any critical QA methodologies or testing trends?
 

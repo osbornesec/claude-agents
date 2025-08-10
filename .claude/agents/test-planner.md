@@ -73,12 +73,12 @@ parallel_capable: false
 ## Research & Methodology
 
 **Research Phase** (Always complete first):
-1. **context7 Queries**: 
+1. **contextS Queries**: 
    - Primary: "Canon TDD test-driven development best practices 2025 Kent Beck methodology test list creation"
    - Secondary: "[detected-framework] testing framework best practices unit integration e2e testing patterns"
    - Industry: "[detected-domain] domain testing standards compliance security performance testing requirements"
 
-2. **Perplexity Queries** (if context7 insufficient):
+2. **Perplexity Queries** (if contextS insufficient):
    - "Test automation pyramid strategy 2025 modern testing frameworks comparison"
    - "Risk-based testing prioritization techniques agile development quality gates"
 
@@ -190,7 +190,7 @@ After completing primary deliverables, create `ai_docs/self-critique/test-planne
 ### Critical Self-Assessment Framework
 
 **1. Research Effectiveness**
-- Did I use context7/perplexity optimally for current TDD and testing best practices?
+- Did I use contextS/perplexity optimally for current TDD and testing best practices?
 - Were my research queries specific to the technology stack and domain requirements?
 - Did I miss any critical testing frameworks, methodologies, or quality standards?
 
